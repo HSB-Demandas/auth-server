@@ -34,39 +34,56 @@ For a detailed explanation of the system layers and their responsibilities, see:
 
 ## 🧩 Core Applications
 
-### 1. `apps.realms`
-- Represents isolated environments (e.g., tenants)
-- Highest-level scoping for users and applications
+### 1. `apps.realms`  
+- Represents isolated environments (e.g., tenants)  
+- Highest-level scoping for users and applications  
 
-### 2. `apps.applications`
-- Registered apps with config like allowed providers, MFA policies
-- Generates API keys and JWT public keys
+### 2. `apps.applications`  
+- Manages client app registration, API keys, and JWT public keys  
+- Configures enabled providers, MFA policies, and terms versions  
 
-### 3. `apps.users`
-- Manages user profile, provider links, password, TOTP/email/phone validation
-- Tracks terms and privacy acceptance
-- Supports self-registration per app configuration
+### 3. `apps.users`  
+- Manages user profiles, self-registration, password and linked providers  
+- Tracks email/phone/TOTP validation and consent to policy/terms  
+- Includes user data export endpoint  
 
-### 4. `apps.auth`
-- Handles login, token issuance, session lifecycle
-- Supports email/SMS/TOTP challenges
-- Exposes session management and MFA endpoints
+### 4. `apps.auth`  
+- Handles login, token issuance, MFA and session lifecycle  
+- Supports email/SMS/TOTP/passkey challenges  
+- Offers token introspection endpoint for external integrations  
 
-### 5. `apps.permissions`
-- Role-based access control with permission enforcement
-- Roles may require email, phone, or TOTP to be valid
+### 5. `apps.permissions`  
+- Defines and enforces role-based access control per realm/app  
+- Roles may require user validations to be active  
 
-### 6. `apps.compliance`
-- Versioned terms and privacy documents
-- Cached endpoints for policy fetching
+### 6. `apps.compliance`  
+- Versioned privacy and terms documents with cached endpoints  
+- Tracks user acceptance and individual consent preferences  
 
-### 7. `apps.notifications`
-- In-app notifications per user
-- Configurable display icons and action links
+### 7. `apps.notifications`  
+- In-app notification delivery per user  
+- Allows configurable icon and action-link metadata  
 
-### 8. `apps.webhooks`
-- Application-level webhook registration
-- Supports retries, logs, HMAC signature
+### 8. `apps.webhooks`  
+- App-level webhook registration, retry, and logging  
+- HMAC signature and delivery status tracking  
+
+### 9. `apps.audit`  
+- Immutable log of sensitive operations for compliance and traceability  
+- Logs user, role, permission, and admin actions per realm  
+
+### 10. `apps.security_events`  
+- Tracks known devices and detects suspicious login attempts  
+- Alerts users on new device activity and allows confirmation  
+
+### 11. `apps.metrics`  
+- Exposes Prometheus-style metrics (login success, role usage, webhooks)  
+- Enables observability for system operators and realm admins  
+
+### 12. `apps.passkeys`  
+- Manages WebAuthn/FIDO2 passkey credentials  
+- Allows users to register, label, and revoke passkeys  
+- Integrates with login via `apps.auth`  
 
 ---
 
@@ -88,6 +105,14 @@ All libraries are standalone, testable and include TDD and integration specs:
 - SNS + SQS integration for internal PubSub
 - Async consumer with typed payload validation (Pydantic)
 
+### ✅ `django_hsb_ratelimit`  
+- Django-integrated Redis-based rate limiting  
+- Decorators and DRF-compatible throttling for IP, user, realm, or composite scope  
+
+### ✅ `libs.passkeys`
+- Manages FIDO2/WebAuthn challenge generation and verification
+- Used for login and credential registration
+
 ---
 
 ## 🔧 Configuration Guidelines
@@ -104,6 +129,8 @@ All libraries are standalone, testable and include TDD and integration specs:
 - Each feature is mapped to endpoints and (where relevant) webhook triggers
 - Flows like registration, MFA, session handling, and token issuance are clearly separated between apps
 - Test strategies are documented per app: unit and integration
+- Passkey-based login is managed by `apps.auth`, while credential lifecycle is handled in `apps.passkeys`
+- WebAuthn protocol support uses `python-fido2` internally
 
 ---
 
@@ -117,6 +144,9 @@ Each app is documented individually:
 - `04-users-app.md`
 - `05-auth-app.md`
 - `06-webhooks-app.md`
+- `07-security-app.md`
+- `08-metrics-app.md`
+- `05-ratelimit.md`
 - `django_hsb_mailer.md`
 - `django_hsb_twilio.md`
 - `django_hsb_totp.md`

@@ -14,6 +14,56 @@ Each functionality listed below contributes to these goals, mapped to specific p
 
 ---
 
+## 📈 Metrics & Observability
+
+| Functionality                         | Personas                          | Description                                                                   | Goals                                                       | Success Criteria                                                               | Edge Cases                                                                           |
+|--------------------------------------|-----------------------------------|-------------------------------------------------------------------------------|-------------------------------------------------------------|----------------------------------------------------------------------------------|--------------------------------------------------------------------------------------|
+| Prometheus-Compatible Metrics        | System Operator                   | Collect metrics for logins, sessions, errors, and events                      | Improve observability and operational visibility            | Metrics accessible at `/metrics/`; exported to Prometheus or other tools       | Misconfigured exporter, metric explosion                                             |
+| Realm-Scoped Metrics                 | Admin                             | Metrics are scoped per realm where applicable                                 | Per-tenant visibility for security and operational metrics  | Realm-filtered metrics return accurate counts                                  | Cross-realm leakage, missing tenant isolation                                       |
+
+---
+
+## 🧾 Audit Logging
+
+| Functionality                         | Personas                          | Description                                                                   | Goals                                                       | Success Criteria                                                               | Edge Cases                                                                           |
+|--------------------------------------|-----------------------------------|-------------------------------------------------------------------------------|-------------------------------------------------------------|----------------------------------------------------------------------------------|--------------------------------------------------------------------------------------|
+| Audit Immutable Logs                 | Admin, System Operator            | Records sensitive actions: role changes, logins, user edits, app configs      | Traceability and forensic support                          | Logs are immutable, searchable, scoped to realm                                 | Event loss, excessive noise, storage limits                                         |
+| Pub/Sub-Registered Auditable Models  | Developer                         | Models can register themselves to auto-log via signal                          | Decoupled audit integration                                 | Log entries generated on create/update/delete of registered models             | Excess logging, malformed metadata, circular triggers                              |
+
+---
+
+## 📍 Security Events & Device Trust
+
+| Functionality                         | Personas                          | Description                                                                   | Goals                                                       | Success Criteria                                                               | Edge Cases                                                                           |
+|--------------------------------------|-----------------------------------|-------------------------------------------------------------------------------|-------------------------------------------------------------|----------------------------------------------------------------------------------|--------------------------------------------------------------------------------------|
+| Known Device Tracking                | End User, Admin                   | Associates logins with trusted devices (IP + User Agent)                      | Detect unauthorized access attempts                         | Devices logged on first login; shown to user                                     | Legitimate device flagged, user doesn’t remember history                            |
+| Suspicious Login Notification        | End User                          | Notifies when login occurs from an unrecognized device                        | Alert on potentially malicious activity                     | Notification sent, user confirms or revokes device                              | Notification skipped, false positive                                                |
+
+---
+
+## 📤 User Data Export
+
+| Functionality                         | Personas                          | Description                                                                   | Goals                                                       | Success Criteria                                                               | Edge Cases                                                                           |
+|--------------------------------------|-----------------------------------|-------------------------------------------------------------------------------|-------------------------------------------------------------|----------------------------------------------------------------------------------|--------------------------------------------------------------------------------------|
+| GDPR-Compliant Data Export           | End User                          | Authenticated users can export all relevant data (profile, roles, sessions)   | Legal compliance and user transparency                     | JSON export endpoint returns complete and accurate user-related data           | Missing fields, unavailable integrations (e.g., audit missing), export too large    |
+
+---
+
+## ✅ Consent Management
+
+| Functionality                         | Personas                          | Description                                                                   | Goals                                                       | Success Criteria                                                               | Edge Cases                                                                           |
+|--------------------------------------|-----------------------------------|-------------------------------------------------------------------------------|-------------------------------------------------------------|----------------------------------------------------------------------------------|--------------------------------------------------------------------------------------|
+| Granular Consent                     | End User, Admin                   | Tracks explicit user consent for communication types or processing purposes   | Compliance with data regulations                            | User consents saved per type; revocation respected                             | Consent not applied in downstream system, confusion with terms acceptance           |
+
+---
+
+## 🚦 Rate Limiting & Abuse Protection
+
+| Functionality                         | Personas                          | Description                                                                   | Goals                                                       | Success Criteria                                                               | Edge Cases                                                                           |
+|--------------------------------------|-----------------------------------|-------------------------------------------------------------------------------|-------------------------------------------------------------|----------------------------------------------------------------------------------|--------------------------------------------------------------------------------------|
+| Redis-Based Rate Limiting            | System Operator, Developer        | Throttles login, registration, or sensitive endpoints                         | Protect from brute-force and flood attacks                  | Excessive attempts are blocked with 429 response                                | False positives from shared IP, missing reset, race condition                       |
+| Scoped Limit Control (IP/User/Realm) | System Operator                   | Limiters apply to IP address, user identity, or realm context                 | Granular and tenant-aware protection                        | Limits can be adjusted and independently applied                                | Missing scope detection, collision of key hashes                                    |
+
 ## 🔐 Authentication & Session
 
 | Functionality                     | Personas                             | Description                                                                                       | Goals                                                            | Success Criteria                                                                         | Edge Cases                                                                                   |
@@ -23,6 +73,7 @@ Each functionality listed below contributes to these goals, mapped to specific p
 | MFA Enforcement                  | End User, Admin                      | Requires second authentication factor (Twilio SMS or Authenticator App). Configurable flag.       | Improve account security                                        | MFA triggered after primary login when enabled                                           | SMS not received, app token expired, device unavailable                                     |
 | Forced Password Change           | End User, Admin                      | Enforces password renewal on next login based on system flag or security policy.                  | Ensure account hygiene and response to threats                 | User redirected to change password, blocked until updated                                | Password change skipped, repeated expired tokens                                            |
 | Password Rotation & Expiry       | End User, Admin                      | Supports expiry policies and rotation enforcement via settings.                                   | Maintain strong credentials over time                         | Password age tracked, old hashes recognized, prompt on expiry                            | Rotation blocked due to reuse, old hash type rejected                                       |
+| Passkey-Based Authentication     | End User, Developer                  | Authenticate using WebAuthn-based passkeys instead of passwords                                  | Provide modern, secure passwordless authentication             | Successful login with registered passkey; proper challenge/response exchange             | Unsupported browser, invalid signature, passkey not found for user                           |
 
 ---
 
@@ -33,6 +84,7 @@ Each functionality listed below contributes to these goals, mapped to specific p
 | Manual and Auto-Registration     | End User, Authentication Admin    | Supports registration via form or social login. Configurable via `ALLOW_AUTO_REGISTRATION`.     | Easy onboarding, admin control of access                    | Users register through both methods, flag behavior is respected             | Missing social login data, incomplete form, auto-reg disabled              |
 | Profile Enrichment & Visibility  | End User                          | Users can update profile and control visibility of each field per app or publicly.              | Personalization and privacy                                | Visibility rules apply, apps only see authorized fields                     | Apps request hidden fields, user edits protected fields                    |
 | Profile Schema Enforcement       | End User, Admin                   | Allows admins to define required fields and validations for profile completion.                 | Maintain data quality and personalization                  | Incomplete profiles flagged, required fields enforced                       | Field omitted or invalid during auth-linked registration                   |
+| Passkey Credential Management    | End User                          | View, register, label, and revoke FIDO2/WebAuthn credentials                                   | Let users manage trusted devices for login                  | Users can register passkeys and manage them securely                        | Duplicate key ID, user deletes all credentials accidentally                |
 
 ---
 

@@ -11,15 +11,15 @@ This document provides a high-level architecture of the **Auth Server** as a dis
 
 The following table maps the concrete applications and libraries planned in this project to their respective architecture layers:
 
-| Layer                          | Applications / Libraries                                                  |
-|--------------------------------|---------------------------------------------------------------------------|
-| 📡 Communication Layer         | `apps.auth`, `apps.users`, `apps.permissions`, `apps.compliance`         |
-| 🔔 Notification Layer          | `apps.notifications`, `libs.mailer`, `libs.twilio`                       |
-| 🧠 Domain Layer                | All `apps.*`, especially `apps.permissions`, `apps.users`, `apps.auth`   |
-| 🏗 Application Orchestration   | `apps.auth`, `apps.webhooks`, `apps.permissions`, `apps.notifications`   |
-| 🧱 Infrastructure & Integration| `libs.aws`, `libs.mailer`, `libs.twilio`, `libs.totp`                    |
-| 🧩 Configuration & Environment | All apps (via `.env` files or settings-based wrappers)                   |
-| 📚 Audit & Compliance Layer    | `apps.compliance`, `apps.webhooks`, request logging across all apps      |
+| Layer                          | Applications / Libraries                                                                 |
+|--------------------------------|------------------------------------------------------------------------------------------|
+| 📡 Communication Layer         | `apps.auth`, `apps.users`, `apps.permissions`, `apps.compliance`, `apps.webhooks`       |
+| 🔔 Notification Layer          | `apps.notifications`, `libs.mailer`, `libs.twilio`                                      |
+| 🧠 Domain Layer                | All `apps.*`, especially `apps.users`, `apps.permissions`, `apps.auth`, `apps.audit`    |
+| 🏗 Application Orchestration   | `apps.auth`, `apps.webhooks`, `apps.permissions`, `apps.notifications`, `apps.users`    |
+| 🧱 Infrastructure & Integration| `libs.aws`, `libs.mailer`, `libs.twilio`, `libs.totp`, `django_hsb_ratelimit`           |
+| 🧩 Configuration & Environment | All apps (via `.env` files or settings-based wrappers)                                  |
+| 📚 Audit & Compliance Layer    | `apps.compliance`, `apps.webhooks`, `apps.audit`, `apps.metrics`, `apps.security_events`|
 
 > 🔗 See `README.md` and `XX-*.md` files for the complete breakdown of responsibilities and documentation per app.
 

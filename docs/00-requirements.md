@@ -10,56 +10,117 @@ This document consolidates all requirements, risks, and success criteria for the
 
 ### 1. User Authentication & Session Management
 - Support traditional login via email/username and password.
-- Support social login with Google OAuth2.
+- Support social login (Google, others via extensible provider support).
 - Validate credentials and issue JWT (access + refresh) tokens.
+- JWT introspection endpoint for external systems.
 - Synchronous session control using HttpOnly and SameSite cookies.
+- Session revocation and listing.
+- Detect and handle suspicious device logins.
 
-### 2. User Registration
+### 2. User Registration & Profile
 - Manual registration via form.
 - Auto-registration via first social login.
-- Configurable flag `ALLOW_AUTO_REGISTRATION` to enable/disable.
+- Configurable flag `ALLOW_AUTO_REGISTRATION`.
+- Profile enrichment with optional fields (name, avatar, phone).
+- Per-field visibility (public/private/per-app).
+- User data export endpoint (`/me/export/`).
 
-### 3. Email Verification
-- Send verification email on registration.
-- Block login for unverified users if `REQUIRE_EMAIL_VERIFICATION` is enabled.
+### 3. Email & Phone Verification
+- Send verification email and/or SMS on registration or request.
+- Block login if not verified (controlled via flags).
+- TOTP support via authenticator apps with QR code.
 
 ### 4. Multi-Factor Authentication (MFA)
-- MFA via Twilio SMS.
-- MFA via authenticator apps with QR code.
-- Optional MFA enforcement using `ENABLE_MFA` flag.
+- Support MFA via SMS (Twilio) or TOTP.
+- Optional MFA enforcement via role or application.
+- MFA challenge endpoints.
+- Track MFA events and logins.
 
-### 5. Password Management
-- Enforce password complexity rules.
-- Support password hash rotation and upgrade.
-- Enforce password change on next login via `FORCE_PASSWORD_ROTATION`.
+### 5. Password & Provider Management
+- Enforce password complexity and rotation.
+- Provider linking and unlinking (social + password-based).
+- Password change and recovery flows.
+- Require email/phone verification before role assignment (configurable).
 
 ### 6. Application Management
-- Admin can register applications via Django Admin.
-- Each app has its own public key for JWT validation.
-- Applications define requested scopes and permissions.
+- Admins can register and manage apps (with JWT keys, provider options).
+- Apps have API keys and JWT public keys.
+- Define allowed login methods, consent requirements, and policy versions.
 
-### 7. User Profile
-- Profile enrichment after registration.
-- Fields include name, avatar, optional fields (e.g., phone).
-- User-defined visibility for each profile field (public/private/per-app).
+### 7. Roles, Permissions & Authorization
+- RBAC with roles scoped to realm + application.
+- Matrix-based permission enforcement.
+- Role assignment policies (MFA, email, phone required).
+- Roles included in JWT claims.
 
-### 8. Permissions & Authorization
-- Matrix-based permissions per user/application.
-- Permissions included in JWT claims.
-- RBAC (Role-Based Access Control) enforcement at API level.
+### 8. Token Management
+- Short-lived access tokens + refresh tokens.
+- Token introspection endpoint for verification (`/token/introspect/`).
+- Revocation support.
 
-### 9. Token Management
-- JWT with expiration and custom claims.
-- Refresh token issuance and renewal via secure API.
-- Token validation endpoint for async clients.
+### 9. Notification System
+- Notify on login from new device/browser.
+- In-app notifications per user.
+- Frontend-defined icon + action links.
+- Supports ingestion via API or PubSub.
 
-### 10. Notification System
-- Notify users on login from new device/browser.
-- Allow users to report unrecognized sessions, triggering forced re-authentication.
+### 10. Webhooks & Integrations
+- App-level webhook registration.
+- Configurable URL, headers, and subscribed events.
+- Retries with backoff and delivery logs.
+- HMAC signing support.
 
-### 11. Admin Interface (Django Admin)
-- Manage users, sessions, applications, public keys, permissions.
-- Visual interface to control MFA flags, auto-registration, and token policies.
+### 11. Admin Interface
+- Django Admin support for users, apps, sessions, and configuration.
+- Role and permission assignment with validation controls.
+- Terms/policy enforcement configuration.
+
+### 12. Terms, Policies & Consent
+- Versioned privacy and usage terms.
+- Terms acceptance blocking login if required.
+- User-level consent for specific data uses (e.g. marketing, analytics).
+- Consent APIs per realm.
+
+### 13. Observability & Metrics
+- Metrics for login success/failure, sessions, registrations, etc.
+- Exposed via Prometheus-style endpoint for scraping.
+
+### 17. Passkey (WebAuthn) Support
+- Users can register passkeys (FIDO2/WebAuthn) and associate them with their account.
+- Login is supported via WebAuthn-based passkeys (challenge/response).
+- Passkey management interface for users (list, label, revoke).
+- Secure challenge validation using public-key cryptography.
+- Admin view of registered passkeys.
+
+### 18. User Consent Management
+- Users can manage granular consent types (e.g., analytics, marketing).
+- Consent acceptance stored per realm and exposed via API.
+- Consent enforced on authentication flows as configured.
+
+### 19. Personal Data Export
+- Authenticated users can export their profile, sessions, roles, audit log.
+- Export formatted in JSON and optionally sent via email.
+- LGPD/GDPR compliant export mechanism.
+
+### 20. Observability & Metrics Enhancements
+- Track usage of login methods (password, social, passkey).
+- Per-realm metrics for logins, registration, role usage.
+- Prometheus-compatible endpoint.
+
+### 14. Audit Logging
+- Logs user and admin actions per realm.
+- Includes app config, permissions, login, role assignment.
+- Immutable and filterable.
+
+### 15. Security Events
+- Track login attempts from new or suspicious devices.
+- Device confirmation and revocation per user.
+- Admins can monitor and revoke unknown devices.
+
+### 16. Rate Limiting & Abuse Protection
+- Protect login, registration, and sensitive flows.
+- Redis-backed rate limit library (`django_hsb_ratelimit`) with decorators and DRF support.
+- Supports user, IP, realm, and composite scopes.
 
 ---
 

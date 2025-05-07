@@ -29,6 +29,7 @@ apps/
     │   ├── auth_endpoint.py      # Primary authentication
     │   ├── mfa_endpoint.py       # MFA orchestration
     │   ├── code_endpoint.py      # Code confirmation for email/SMS/TOTP
+    │   ├── passkey_endpoint.py       # WebAuthn login support
     ├── sessions/             # Session inspection, cleanup
     ├── tokens.py             # Token issuance and validation
     ├── validators.py         # Access policy and provider checks
@@ -48,6 +49,7 @@ apps/
 - Token issuance: `access_token`, `refresh_token`
 - Refresh token handling
 - Token revocation
+- Passkey login using WebAuthn challenge and response
 
 ---
 
@@ -96,6 +98,8 @@ Codes are time-limited and rate-limited, and tied to the user's session context.
 | POST   | `/api/auth/login/`         | Authenticate user with credentials or provider |
 | POST   | `/api/auth/token/refresh/` | Issue new access token via refresh token       |
 | POST   | `/api/auth/token/revoke/`  | Revoke current token                           |
+| POST   | `/api/auth/passkey/begin/`          | Begin WebAuthn passkey login challenge |
+| POST   | `/api/auth/passkey/complete/`       | Complete login with passkey assertion |
 
 ### 🔁 Code Confirmation Endpoints
 
@@ -183,6 +187,71 @@ To support third-party and external application integration (including OIDC-comp
   - Realm/application signature
   - Audience and expiration
 - Prevents local token misuse by enforcing introspection flow.
+
+---
+
+## 🔏 Passkey Login Flow
+
+This flow allows a user to log in using a registered WebAuthn passkey (managed by `apps.passkeys`).
+
+### 🔗 Endpoints
+
+| Method | URL                      | Description                                  |
+|--------|--------------------------|----------------------------------------------|
+| POST   | `/api/auth/passkey/begin/`    | Initiates login challenge for WebAuthn       |
+| POST   | `/api/auth/passkey/complete/` | Completes login using assertion and passkey  |
+
+### 📤 Expected Input (begin)
+
+```json
+{
+  "username": "john@example.com"
+}
+```
+
+### 📥 Response (begin)
+
+```json
+{
+  "challenge": "<base64>",
+  "rpId": "example.com",
+  "allowCredentials": [...],
+  "timeout": 60000
+}
+```
+
+### 📤 Expected Input (complete)
+
+```json
+{
+  "id": "...",
+  "rawId": "...",
+  "type": "public-key",
+  "response": {
+    "clientDataJSON": "...",
+    "authenticatorData": "...",
+    "signature": "...",
+    "userHandle": "..."
+  }
+}
+```
+
+### 📥 Response (complete)
+
+```json
+{
+  "access_token": "...",
+  "refresh_token": "...",
+  "expires_in": 3600,
+  "token_type": "bearer"
+}
+```
+
+### 🛡 Security Considerations
+
+- Challenges are scoped to the realm and expire after a short period.
+- Public key validation and signature checks are performed.
+- Only passkeys registered via `apps.passkeys` can be used.
 
 ---
 
