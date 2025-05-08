@@ -23,6 +23,28 @@
 - [Documentation](#documentation)
 - [Status](#status)
 
+## 📚 Documentation Structure
+
+The backend documentation is organized into three main sections:
+
+1. **Architecture** (`docs/backend/architecture/`)
+   - Core architectural principles
+   - Design patterns
+   - Integration guidelines
+   - Security considerations
+
+2. **Core Applications** (`docs/backend/apps/`)
+   - Detailed documentation for each Django app
+   - Implementation guidelines
+   - Usage examples
+   - Testing strategies
+
+3. **Supporting Libraries** (`docs/backend/libs/`)
+   - Documentation for reusable components
+   - Integration patterns
+   - Best practices
+   - Error handling
+
 ## 🧭 Project Overview
 
 The Auth Server is a multi-tenant Identity and Access Management (IAM) platform built with Django, designed to provide enterprise-grade authentication, authorization, and user management capabilities. The system is inspired by best practices from providers like Auth0 and AWS IAM while maintaining full extensibility and customization.
@@ -34,6 +56,8 @@ The Auth Server is a multi-tenant Identity and Access Management (IAM) platform 
 3. **Security First**: OWASP-compliant architecture with built-in compliance features
 4. **Scalability**: Designed for multi-tenant operation with proper isolation
 5. **Extensibility**: Easy to add new authentication methods, providers, and integrations
+6. **Documentation**: Comprehensive and consistent documentation
+7. **Testing**: Robust testing strategy with clear separation of test types
 
 ## 🏗 Architecture Overview
 
@@ -49,11 +73,15 @@ The backend is organized into two main categories:
   - Have their own models, views, serializers, and permissions
   - Contain business-specific logic and workflows
   - Are tightly coupled to the IAM domain
+  - Follow consistent documentation structure
+  - Implement comprehensive testing strategy
 - **Supporting Libraries** (`libs.*`): Provide reusable technical components
 
   - Are decoupled from business logic
   - Can be used in other projects
   - Focus on technical implementation details
+  - Include clear integration patterns
+  - Follow library-specific documentation guidelines
 
 ## 🧩 Core Applications
 
@@ -66,6 +94,8 @@ The backend is organized into two main categories:
   - Configuration management per realm
   - Resource scoping and isolation
   - Custom branding and settings per realm
+- **Documentation**: [Realms App](docs/backend/apps/00-realms-app.md)
+- **Testing**: Unit tests for realm creation, integration tests for context handling
 
 ### 2. `apps.applications`
 
@@ -78,6 +108,8 @@ The backend is organized into two main categories:
   - Provider configuration
   - MFA policy management
   - Terms and conditions versioning
+- **Documentation**: [Applications App](docs/backend/apps/02-apps-app.md)
+- **Testing**: Unit tests for client registration, integration tests for OAuth flows
 
 ### 3. `apps.users`
 
@@ -90,6 +122,8 @@ The backend is organized into two main categories:
   - TOTP device management
   - Consent tracking
   - Data export compliance
+- **Documentation**: [Users App](docs/backend/apps/05-users-app.md)
+- **Testing**: Unit tests for user management, integration tests for provider linking
 
 ### 4. `apps.auth`
 
@@ -99,75 +133,96 @@ The backend is organized into two main categories:
   - Multi-factor authentication workflow
   - JWT token issuance and validation
   - Session management
-  - Passkey authentication
-  - Rate limiting
-  - Login flow orchestration
+  - Password reset flow
+  - Provider authentication
+  - Consent management
+  - Device management
+- **Documentation**: [Auth App](docs/backend/apps/06-auth-app.md)
+- **Testing**: Unit tests for authentication logic, integration tests for MFA flows
 
 ### 5. `apps.permissions`
 
-**Purpose**: Role-based access control and authorization
+**Purpose**: Fine-grained access control and authorization
 
 - **Key Features**:
-  - Role definition and management
-  - Permission assignment
-  - Role validation rules
-  - Policy enforcement
-  - Access control lists
+  - Role-based access control (RBAC)
+  - Resource-based permissions
+  - Policy evaluation
+  - Permission inheritance
+  - Group management
+  - Audit logging
+- **Documentation**: [Permissions App](docs/backend/apps/04-permissions-app.md)
+- **Testing**: Unit tests for permission evaluation, integration tests for access control
 
 ### 6. `apps.compliance`
 
-**Purpose**: Legal and regulatory compliance
+**Purpose**: Regulatory compliance and data protection
 
 - **Key Features**:
-  - Terms and conditions management
-  - Privacy policy versioning
-  - User consent tracking
-  - Data export endpoints
-  - Compliance reporting
+  - GDPR compliance
+  - CCPA compliance
+  - Data retention policies
+  - Audit trail management
+  - Consent management
+  - Data export controls
+- **Documentation**: [Compliance App](docs/backend/apps/01-compliance-app.md)
+- **Testing**: Unit tests for compliance checks, integration tests for data handling
 
 ### 7. `apps.notifications`
 
-**Purpose**: User communication and alerts
+**Purpose**: User notifications and communication
 
 - **Key Features**:
-  - In-app notification delivery
-  - Actionable notifications
-  - Notification preferences
-  - Event-driven notifications
+  - Email notifications
+  - SMS notifications
+  - In-app notifications
+  - Push notifications
+  - Notification templates
   - Delivery tracking
+- **Documentation**: [Notifications App](docs/backend/apps/03-notifications-app.md)
+- **Testing**: Unit tests for notification creation, integration tests for delivery
 
 ### 8. `apps.webhooks`
 
-**Purpose**: Event-driven integration
+**Purpose**: Event-driven architecture and integration
 
 - **Key Features**:
-  - Webhook registration and management
-  - Event delivery with retry logic
-  - HMAC signature validation
-  - Delivery status tracking
+  - Custom event triggers
+  - Webhook delivery
+  - Retry mechanisms
+  - Event validation
   - Rate limiting
+  - Security validation
+- **Documentation**: [Webhooks App](docs/backend/apps/03-webhooks-app.md)
+- **Testing**: Unit tests for event handling, integration tests for webhook delivery
 
 ### 9. `apps.audit`
 
-**Purpose**: System observability and compliance
+**Purpose**: System-wide audit logging
 
 - **Key Features**:
-  - Immutable audit logging
-  - Action tracking per realm
-  - User activity monitoring
-  - Compliance reporting
+  - Immutable audit logs
+  - Action tracking
   - Event correlation
+  - Log retention
+  - Export capabilities
+  - Compliance reporting
+- **Documentation**: [Audit App](docs/backend/apps/00-audit-app.md)
+- **Testing**: Unit tests for log creation, integration tests for audit queries
 
-### 10. `apps.security_events`
+### 10. `apps.security`
 
-**Purpose**: Security monitoring and alerting
+**Purpose**: Security event monitoring and response
 
 - **Key Features**:
-  - Device tracking and trust
-  - Suspicious activity detection
-  - Login attempt monitoring
-  - Security event correlation
-  - User notification
+  - Security event detection
+  - Threat intelligence integration
+  - Incident response
+  - Security policies
+  - Compliance monitoring
+  - Risk assessment
+- **Documentation**: [Security App](docs/backend/apps/07-security-app.md)
+- **Testing**: Unit tests for security checks, integration tests for event handling
 
 ### 11. `apps.metrics`
 
@@ -176,142 +231,142 @@ The backend is organized into two main categories:
 - **Key Features**:
   - Prometheus-style metrics
   - Login success/failure tracking
-  - Role usage metrics
-  - Webhook delivery statistics
-  - System health monitoring
+  - Authentication performance
+  - Resource usage
+  - Error tracking
+  - Custom metrics
+- **Documentation**: [Metrics App](docs/backend/apps/08-metrics-app.md)
+- **Testing**: Unit tests for metric collection, integration tests for monitoring
 
 ### 12. `apps.passkeys`
 
-**Purpose**: WebAuthn/FIDO2 credential management
+**Purpose**: WebAuthn/FIDO2 passkey authentication
 
 - **Key Features**:
   - Passkey registration
-  - Credential management
-  - Passkey verification
-  - Integration with authentication flow
-  - Security policy enforcement
+  - Passkey authentication
+  - Device management
+  - Security key support
+  - Biometric integration
+  - Recovery mechanisms
+- **Documentation**: [Passkeys App](docs/backend/apps/09-passkey-app.md)
+- **Testing**: Unit tests for passkey operations, integration tests for authentication
 
-## 📦 Supporting Libraries
+## 📚 Supporting Libraries
 
-### 1. `libs.totp`
+### 1. `libs.twilio`
 
-**Purpose**: Time-based One-Time Password implementation
+**Purpose**: SMS and voice communication integration
 
-- **Features**:
-  - RFC 6238 compliant TOTP generation
-  - QR code generation for app setup
-  - Code verification
-  - Recovery code management
-
-### 2. `libs.twilio`
-
-**Purpose**: SMS integration and verification
-
-- **Features**:
-  - SMS message sending
-  - Code verification
-  - Message templating
+- **Key Features**:
+  - SMS sending
+  - Voice calls
+  - Message status tracking
+  - Webhook handling
   - Rate limiting
-  - Error handling
+- **Documentation**: [Twilio Library](docs/backend/libs/01-twilio.md)
+- **Testing**: Unit tests for message creation, integration tests for delivery
 
-### 3. `libs.mailer`
-
-**Purpose**: Email notification system
-
-- **Features**:
-  - Multi-provider email sending
-  - HTML template rendering
-  - Event tracking
-  - Bounce handling
-  - Unsubscribe management
-
-### 4. `libs.aws`
+### 2. `libs.aws`
 
 **Purpose**: AWS service integration
 
-- **Features**:
-  - SNS + SQS integration
-  - Async message processing
-  - Payload validation
+- **Key Features**:
+  - S3 storage
+  - SES email sending
+  - KMS encryption
+  - CloudWatch metrics
+  - Lambda functions
+- **Documentation**: [AWS Library](docs/backend/libs/02-aws.md)
+- **Testing**: Unit tests for service clients, integration tests for operations
+
+### 3. `libs.totp`
+
+**Purpose**: Time-based One-Time Password authentication
+
+- **Key Features**:
+  - TOTP generation
+  - QR code generation
+  - Token validation
+  - Recovery code management
+  - Device management
+- **Documentation**: [TOTP Library](docs/backend/libs/03-totp-app.md)
+- **Testing**: Unit tests for token generation, integration tests for validation
+
+### 4. `libs.email`
+
+**Purpose**: Email sending and delivery
+
+- **Key Features**:
+  - Template-based emails
+  - Delivery tracking
+  - Retry mechanisms
   - Error handling
-  - Retry logic
-
-### 5. `django_hsb_ratelimit`
-
-**Purpose**: Rate limiting and throttling
-
-- **Features**:
-  - Redis-based rate limiting
-  - DRF-compatible throttling
-  - Multiple scope support
-  - Custom rate limit definitions
-  - Real-time monitoring
-
-### 6. `libs.passkeys`
-
-**Purpose**: WebAuthn protocol implementation
-
-- **Features**:
-  - FIDO2 protocol support
-  - Challenge generation
-  - Credential verification
-  - Security policy enforcement
-  - Error handling
+  - Metrics collection
+- **Documentation**: [Email Library](docs/backend/libs/04-email.md)
+- **Testing**: Unit tests for email creation, integration tests for delivery
 
 ## 🏗 Architecture Layers
 
-The system is organized into distinct architectural layers:
+1. **Presentation Layer**
+   - API endpoints
+   - Documentation
+   - Error handling
+   - Rate limiting
+   - Security headers
+   - Response formatting
 
-1. **Communication Layer**
-
-   - REST API endpoints
-   - GraphQL API (planned)
-   - WebSocket connections
-   - Protocol handling
 2. **Application Layer**
-
-   - Business logic orchestration
-   - Workflow management
-   - Cross-app coordination
+   - Business logic
+   - Workflow orchestration
    - Event handling
-3. **Domain Layer**
+   - Validation
+   - Transaction management
+   - Caching strategies
 
-   - Business entities
-   - Domain rules
+3. **Domain Layer**
+   - Business rules
+   - Entities
    - Value objects
    - Domain events
-4. **Infrastructure Layer**
+   - Aggregate roots
+   - Domain services
 
+4. **Infrastructure Layer**
    - Database access
    - External service integration
-   - Message queue handling
    - Caching
-   - Storage
-5. **Notification Layer**
+   - Queue management
+   - File storage
+   - Security integration
 
-   - Event-driven notifications
-   - Delivery channels
-   - Retry mechanisms
-   - Status tracking
+## 🤖 LLM Integration Guidelines
 
-## 🧠 LLM Integration Guidelines
+When working with LLMs to enhance documentation:
 
-### App Structure
+1. **Documentation Generation**
+   - Follow established documentation structure
+   - Maintain consistent formatting
+   - Include examples and usage patterns
+   - Document edge cases and error scenarios
+   - Follow established patterns
+   - Use consistent terminology
 
-Each app follows a consistent structure:
+2. **Code Generation**
+   - Follow architectural patterns
+   - Implement proper error handling
+   - Include unit tests
+   - Document generated code
+   - Follow coding standards
+   - Include security considerations
 
-```
-apps/<app_name>/
-├── models/          # Domain models
-├── services/        # Business logic
-├── tasks/          # Async tasks
-├── serializers/     # Data serialization
-├── views/          # API endpoints
-├── permissions/    # Access control
-├── events/         # Event handling
-├── docs/           # Documentation
-└── tests/          # Test suite
-```
+3. **Testing Strategy**
+   - Unit tests for core logic
+   - Integration tests for system boundaries
+   - Performance tests for critical paths
+   - Security tests for sensitive operations
+   - Edge case testing
+   - Error handling tests
 
 ### Integration Points
 
