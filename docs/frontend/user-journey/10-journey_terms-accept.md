@@ -2,7 +2,7 @@
 
 # 📝 Journey: Terms, Privacy, and User Consent Acceptance
 
-## 📌 Description
+**## 📌 Description**
 
 This journey ensures users explicitly accept the most recent versions of the system's terms of use, privacy policy, and any additional consent requirements (e.g., for marketing or analytics). Acceptance may be required during registration, first login, or after a new version is published. The journey adapts based on application settings.
 

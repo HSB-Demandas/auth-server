@@ -1,0 +1,57 @@
+Screen Name,Route,Defined In,Category,States,Components,Screen Components,Existing Components
+Registration Form,/register,01-journey_user-registration-email.md,🟢 Registration,"Form idle, Submitted, Duplicate email",RegisterForm,"EmailInput, PasswordInput, TermsCheckbox","Button, Checkbox, Form, Input"
+Email Confirmation Sent,/register/confirm-email,01-journey_user-registration-email.md,🟢 Registration,"Success notice, Retry link visible",RegisterForm,"EmailInput, PasswordInput, TermsCheckbox","Button, Checkbox, Form, Input"
+Email Confirmation (Deep Link),/verify/email?token=...,01-journey_user-registration-email.md,📧 Email Verification,"Waiting, Success, Failure",EmailVerificationHandler,,
+Terms Acceptance,/terms,01-journey_user-registration-email.md,📜 Policies & Consent,"Terms only, Terms + privacy, All accepted, Some pending",TermsAgreement,,
+Registration Complete,/register/success,01-journey_user-registration-email.md,🟢 Registration,"Form idle, Submitted, Duplicate email",RegisterForm,"EmailInput, PasswordInput, TermsCheckbox","Button, Checkbox, Form, Input"
+Choose Social Provider,/login,02-journey_user-registration-social.md,🔐 Authentication,"Login idle, Error shown, Locked out, Pending MFA",SocialLoginButtons,,
+Additional Info Required (Post-login),/complete-profile,02-journey_user-registration-social.md,🔐 Authentication,"Required fields only, Error, Success",AdditionalInfoForm,,
+Accept Terms (if required),/terms,02-journey_user-registration-social.md,📜 Policies & Consent,"Terms only, Terms + privacy, All accepted, Some pending",TermsAgreement,,
+Registration Complete,/welcome,02-journey_user-registration-social.md,🏠 Post-Login,Default,,,
+Login Form,/login,03-journey_login-email-pass.md,🔐 Authentication,"Login idle, Error shown, Locked out, Pending MFA",LoginForm,"EmailInput, PasswordInput, RememberMeToggle","Button, Form, Input"
+Device Confirmation (if applicable),/device/confirm,"03-journey_login-email-pass.md, 04-journey_login-social.md",🛡️ Device Security,"Confirmation screen, Already confirmed, Session expired",DeviceConfirmationCard,DeviceMetadataBox,"Alert, Badge, Button, Card, Dialog, useToast"
+Accept Terms,/terms,"03-journey_login-email-pass.md, 04-journey_login-social.md",📜 Policies & Consent,"Terms only, Terms + privacy, All accepted, Some pending",TermsAgreement,,
+Dashboard (Post-Login),/dashboard,03-journey_login-email-pass.md,🔐 Authentication,"Welcome view, First time login, Notification badge active",,,
+Login with Social,/login,04-journey_login-social.md,🔐 Authentication,"Login idle, Error shown, Locked out, Pending MFA",SocialLoginButtons,,
+Additional Info Required,/complete-profile,04-journey_login-social.md,📦 Other,"Required fields only, Error, Success",AdditionalInfoForm,,
+Welcome / Home,/dashboard,04-journey_login-social.md,🏠 Post-Login,"Welcome view, First time login, Notification badge active",,,
+Prompt to Verify Email,/verify/email,05-journey_email-verification.md,📧 Email Verification,"Waiting, Success, Failure",EmailVerificationHandler,,
+Email Verification (Deep Link),/verify/email?token=abc123,05-journey_email-verification.md,📧 Email Verification,"Waiting, Success, Failure",EmailVerificationHandler,,
+Verification Success,/verify/email/success,05-journey_email-verification.md,📧 Email Verification,"Waiting, Success, Failure",EmailVerificationHandler,,
+Verification Failure,/verify/email/failed,05-journey_email-verification.md,📧 Email Verification,"Waiting, Success, Failure",EmailVerificationHandler,,
+Enter Phone Number,/verify/phone,06-journey_phone-verification.md,📱 Phone Verification,"Form input, Submission pending, Number already verified",PhoneVerificationForm,"PhoneInput, SendCodeButton","Button, Input"
+Enter Verification Code,/verify/phone/code,06-journey_phone-verification.md,📱 Phone Verification,"Awaiting code, Code invalid, Code verified","PhoneVerificationForm, VerifyCodeInput","CodeInput, PhoneInput, SendCodeButton","Button, Input"
+Verification Success,/verify/phone/success,06-journey_phone-verification.md,📱 Phone Verification,"Form input, Submission pending, Number already verified",PhoneVerificationForm,"PhoneInput, SendCodeButton","Button, Input"
+Verification Failure,/verify/phone/failed,06-journey_phone-verification.md,📱 Phone Verification,"Form input, Submission pending, Number already verified",PhoneVerificationForm,"PhoneInput, SendCodeButton","Button, Input"
+MFA Setup Choice,/mfa/setup,07-journey_mfa-setup.md,🔒 MFA,"Method choice, TOTP QR shown, SMS input",MfaSetupForm,,
+Setup TOTP,/mfa/setup/totp,07-journey_mfa-setup.md,🔒 MFA,"Method choice, TOTP QR shown, SMS input",MfaSetupForm,,
+Setup SMS,/mfa/setup/sms,07-journey_mfa-setup.md,🔒 MFA,"Method choice, TOTP QR shown, SMS input",MfaSetupForm,,
+MFA Setup Success,/mfa/setup/success,07-journey_mfa-setup.md,🔒 MFA,"Method choice, TOTP QR shown, SMS input",MfaSetupForm,,
+MFA Challenge Prompt,/mfa,08-journey_mfa-login-challenge.md,🔒 MFA,"Awaiting input, Verification failed, MFA passed",MfaChallenge,,
+Resend MFA Code (SMS),/mfa?resend=sms,08-journey_mfa-login-challenge.md,🔒 MFA,"SMS resent, Cooldown active",MfaChallenge,,
+MFA Challenge Success,/dashboard,08-journey_mfa-login-challenge.md,🏠 Post-Login,"Welcome view, First time login, Notification badge active",,,
+Device Alert,/device/alert,09-journey_login-suspicious-device.md,🛡️ Device Security,Default,SuspiciousDeviceAlert,,
+Device Confirmation Success,/device/confirmed,09-journey_login-suspicious-device.md,🛡️ Device Security,"Confirmation screen, Already confirmed, Session expired",DeviceConfirmationCard,DeviceMetadataBox,"Alert, Badge, Button, Card, Dialog, useToast"
+Device Confirmation Failure,/device/failed,09-journey_login-suspicious-device.md,🛡️ Device Security,Default,,,
+Accept Terms & Privacy Policy,/terms,10-journey_terms-accept.md,📜 Policies & Consent,"Terms only, Terms + privacy, All accepted, Some pending",TermsAgreement,,
+Granular Consent (Optional),/consent,10-journey_terms-accept.md,📜 Policies & Consent,"All opt-ins shown, Some locked, All pre-selected",ConsentToggleList,ConsentOptionToggle,"Card, Label, Switch"
+Terms & Consent Confirmation,/terms/success,10-journey_terms-accept.md,📜 Policies & Consent,"Terms only, Terms + privacy, All accepted, Some pending",TermsAgreement,,
+Manage Linked Accounts,/settings/providers,12-journey_link-unlink-social-provider.md,⚙️ Settings - Linked Providers,"Linked, Unlinked, Link in progress",LinkedProvidersManager,,
+OAuth Authorization Redirect,External Provider OAuth URL,12-journey_link-unlink-social-provider.md,📦 Other,Default,,,
+Confirmation Message,/settings/providers/success,12-journey_link-unlink-social-provider.md,⚙️ Settings - Linked Providers,"Linked, Unlinked, Link in progress",LinkedProvidersManager,,
+Change Password Form,/settings/password,13-journey_change-password.md,⚙️ Settings - Password,Default,ChangePasswordForm,,
+Password Changed Confirmation,/settings/password/success,13-journey_change-password.md,⚙️ Settings - Password,Default,ChangePasswordForm,,
+Forgot Password Request,/forgot-password,14-journey_forgot-password.md,🔁 Password Recovery,Default,ForgotPasswordForm,,
+Reset Password (via Token),/reset-password?token=abc123,14-journey_forgot-password.md,🔁 Password Recovery,"Valid token, Token expired, Form submitted",,,
+Reset Success,/reset-password/success,14-journey_forgot-password.md,🔁 Password Recovery,"Valid token, Token expired, Form submitted",,,
+Reset Password Form (User-Initiated),/settings/password/reset,15-journey_user-password-reset.md,⚙️ Settings - Password,Default,PasswordResetForm,,
+Password Reset Success,/settings/password/reset/success,15-journey_user-password-reset.md,⚙️ Settings - Password,Default,PasswordResetForm,,
+Active Sessions,/settings/sessions,16-journey_view-and-revoke-active-sessions.md,⚙️ Settings - Sessions,"List view, Revoking..., Session removed",SessionCard,SessionDetailBox,"Button, Card"
+Revoke Confirmation (Modal),Inline/modal,16-journey_view-and-revoke-active-sessions.md,📦 Other,Default,,,
+Session Revoked,/settings/sessions,16-journey_view-and-revoke-active-sessions.md,⚙️ Settings - Sessions,"List view, Revoking..., Session removed",SessionCard,SessionDetailBox,"Button, Card"
+Export Data Request,/settings/export,17-journey_export-personal-data.md,⚙️ Settings - Export,"Idle, Exporting, Download ready",ExportDataSummary,"DownloadButton, ExportDataList","Button, Card, Text"
+Export Ready (Optional),/settings/export/success,17-journey_export-personal-data.md,⚙️ Settings - Export,"Idle, Exporting, Download ready",ExportDataSummary,"DownloadButton, ExportDataList","Button, Card, Text"
+Known Devices,/settings/devices,18-journey_view-my-devices.md,🛡️ Device Security,Default,,,
+Revoke Confirmation,Modal or inline,18-journey_view-my-devices.md,📦 Other,Default,,,
+Notification Center,/notifications,19-journey_view-inapp-notifications.md,🔔 Notifications,"Unread present, All read, Action link clicked",NotificationFeed,NotificationItem,"Badge, List"
+Notification Badge Widget,UI Component (Nav),19-journey_view-inapp-notifications.md,🔔 Notifications,Default,NotificationBadge,,
