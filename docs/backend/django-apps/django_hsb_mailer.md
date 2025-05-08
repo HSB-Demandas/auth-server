@@ -1,20 +1,31 @@
-# 📦 Django App: `apps.email`
+# 📦 Django App: `apps.django_hsb_mailer`
 
-This app wraps the generic email sending library (`libs.email_sender`) with full Django integration, including persistence of email records, webhook event handling, API endpoints, and caching. It is a reusable Django app that can be installed across projects and configured via standard Django settings.
-
----
-
-## 🎯 Purpose
-
-- Send emails through configurable providers using the `libs.email_sender` library
-- Track delivery lifecycle via webhook events (delivered, opened, bounced, etc.)
-- Expose RESTful endpoints for sending and querying emails
-- Enable retries, caching, and deduplication
-- Allow reusability across multiple Django projects
+A reusable Django app for email sending with full integration, including persistence, webhook handling, and caching.
 
 ---
 
-## 📁 App Structure
+## 📋 Table of Contents
+
+- [Architecture](#architecture)
+- [Module Structure](#module-structure)
+- [Components](#components)
+- [Testing Strategy](#testing-strategy)
+- [Environment Variables](#environment-variables)
+- [Usage Examples](#usage-examples)
+- [Security Considerations](#security-considerations)
+- [Performance Considerations](#performance-considerations)
+
+## 🏗 Architecture
+
+### Core Principles
+
+1. **Provider Agnostic**: Supports multiple email providers
+2. **Event-Driven**: Handles delivery events and webhooks
+3. **Distributed Storage**: Redis-based caching
+4. **Middleware Integration**: Django/DRF compatibility
+5. **Error Handling**: Customizable error responses
+
+## 📁 Module Structure
 
 ```
 apps/
@@ -34,75 +45,168 @@ apps/
     ├── migrations/
     └── tests/
         ├── unit/
+        │   ├── test_models.py
+        │   ├── test_services.py
+        │   └── test_views.py
         └── integration/
+            ├── test_provider.py
+            └── test_webhook.py
 ```
 
----
+## ⚙️ Components
 
-## 🧱 Models
+### 1. Models (`models.py`)
 
-### `EmailLog`
-Tracks every email and its state.
+- **Purpose**: Email tracking and persistence
+- **Key Models**:
+  - `EmailLog`: Email tracking with status
+  - `EmailTemplate`: Optional template system
+  - `EmailEvent`: Delivery events tracking
 
-| Field              | Type           | Description                                |
-|--------------------|----------------|--------------------------------------------|
-| `id`               | UUID           | Primary key                                |
-| `provider`         | CharField      | E.g., `smtp`, `mailgun`, `ses`             |
-| `provider_msg_id`  | CharField      | ID returned by the provider                |
-| `from_email`       | EmailField     | Sender                                     |
-| `to_email`         | EmailField     | Recipient                                  |
-| `subject`          | TextField      | Optional                                   |
-| `status`           | CharField      | `PENDING`, `SENT`, `FAILED`, etc.          |
-| `last_event`       | CharField      | `DELIVERED`, `OPENED`, `BOUNCED`, etc.     |
-| `last_event_time`  | DateTimeField  | Timestamp of last event                    |
-| `created_at`       | DateTimeField  | Timestamp                                  |
-| `updated_at`       | DateTimeField  | Timestamp                                  |
+### 2. Services (`services.py`)
 
----
+- **Purpose**: Core email logic
+- **Features**:
+  - Email sending
+  - Event handling
+  - Retry logic
+  - Error handling
 
-## ⚙️ Configuration via Settings
+### 3. API (`views.py` + `serializers.py`)
 
-```python
-EMAIL_PROVIDER = "mailgun"
-EMAIL_FROM = "noreply@myapp.com"
-EMAIL_PROVIDER_CONFIG = {
-    "api_key": "...",
-    "domain": "...",
-}
-EMAIL_EVENT_CACHE_TTL = 3600  # 1 hour
-```
+- **Purpose**: REST API endpoints
+- **Endpoints**:
+  - `/api/email/send/` - Send email
+  - `/api/email/status/` - Get status
+  - `/api/email/events/` - Webhook endpoint
 
----
+### 4. Caching (`cache.py`)
 
-## 🧠 Caching Strategy
+- **Purpose**: Performance optimization
+- **Features**:
+  - Event deduplication
+  - Rate limiting
+  - Retry tracking
+  - Status caching
 
-| Use Case              | Cache Key Example                   | Purpose                          |
-|------------------------|-------------------------------------|----------------------------------|
-| Deduplicate events     | `email:event:<provider_msg_id>`     | Prevent duplicate updates        |
-| Block re-send flood    | `email:send:<to>:<subject>`         | Prevent immediate re-send        |
-| Retry flag             | `email:retry:<email_id>`            | Delayed retry support            |
+### 5. Error Handling (`exceptions.py`)
 
----
+- **Purpose**: Domain-specific error abstraction
+- **Exceptions**:
+  - `EmailSendError`
+  - `InvalidEmailError`
+  - `ProviderError`
+  - `EventProcessingError`
 
-## ✅ TDD Strategy
+## ✅ Testing Strategy
 
 ### Unit Tests
 
-- Email log creation on successful send
-- Webhook parsing and model updates
-- Validation and serialization
+- **Core Logic**:
+  - Email sending
+  - Event processing
+  - Caching logic
+  - Validation
+- **Test Coverage**:
+  - 100% statement coverage
+  - Edge case handling
+  - Error scenarios
+  - Provider-specific tests
 
 ### Integration Tests
 
-- Send real email and log result
-- Simulate webhook event POST
-- Query status endpoint
+- **Internal Integration**:
+  - Database operations
+  - API endpoints
+  - Caching behavior
+  - Event handling
+- **External Integration**:
+  - Provider integration
+  - Webhook processing
+  - Error handling
+  - Retry logic
 
----
+## 🔐 Environment Variables
+
+No direct environment variable access inside the app. All configuration must be passed through Django settings.
+
+If required by the consuming app, recommended settings:
+
+| Setting Name               | Purpose                      | Required | Default |
+|----------------------------|------------------------------|----------|---------|
+| `EMAIL_PROVIDER`           | Email provider name          | ✅       | —       |
+| `EMAIL_FROM`               | Default sender email         | ✅       | —       |
+| `EMAIL_PROVIDER_CONFIG`    | Provider-specific settings   | ✅       | —       |
+| `EMAIL_EVENT_CACHE_TTL`    | Event cache TTL (seconds)    | ❌       | 3600    |
+| `EMAIL_RETRY_DELAY`        | Retry delay (seconds)        | ❌       | 300     |
+| `EMAIL_MAX_RETRIES`        | Maximum retry attempts       | ❌       | 3       |
+
+## 🔄 Usage Examples
+
+### Basic Email Sending
+
+```python
+from apps.django_hsb_mailer.services import send_email
+
+result = send_email(
+    to="user@example.com",
+    subject="Welcome",
+    template="welcome_email",
+    context={
+        "name": "John",
+        "activation_link": "https://..."
+    }
+)
+```
+
+### Webhook Event Handling
+
+```python
+from apps.django_hsb_mailer.integrations.event_parser import parse_webhook
+
+@csrf_exempt
+@require_POST
+def webhook_view(request):
+    event = parse_webhook(request.body)
+    if event:
+        process_email_event(event)
+    return JsonResponse({"status": "ok"})
+```
+
+### Caching Usage
+
+```python
+from apps.django_hsb_mailer.cache import EmailCache
+
+cache = EmailCache()
+
+cache.set_event_deduplication("message-id-123")
+if cache.check_event_deduplication("message-id-123"):
+    # Skip processing
+    pass
+```
+
+## 🛡 Security Considerations
+
+- **Content Security**: Email content sanitization
+- **Provider Security**: Credential management
+- **Event Security**: Webhook authentication
+- **Error Security**: Sensitive information masking
+- **Rate Limiting**: Provider-specific limits
+- **Connection Security**: TLS/SSL enforcement
+
+## 🚀 Performance Considerations
+
+- **Connection Pooling**: Efficient provider connections
+- **Batch Operations**: Optimized sending
+- **Caching Strategy**: Event deduplication
+- **Error Handling**: Fast failure paths
+- **Middleware**: Efficient request processing
+- **Template Caching**: Efficient template rendering
 
 ## 🤖 LLM Implementation Guidelines
 
-- All actual sending and event parsing must use `libs.email_sender`
+- All actual sending and event parsing must use `libs.django_hsb_mailer.integrations.sender`
 - Models must be independent of any specific provider
 - Webhook views must normalize all event formats into `EmailEvent`
 - Ensure all exceptions are caught and returned as DRF errors

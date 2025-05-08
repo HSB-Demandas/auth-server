@@ -1,127 +1,302 @@
+# 🛡️ Auth Server - System Architecture
 
+## 📋 Table of Contents
 
+- [Architecture Overview](#architecture-overview)
+- [Layer-to-Apps Mapping](#layer-to-apps-mapping)
+- [System Architecture Diagram](#system-architecture-diagram)
+- [Architecture Layers](#architecture-layers)
+  - [1. Communication Layer](#1-communication-layer)
+  - [2. Notification Layer](#2-notification-layer)
+  - [3. Domain Layer](#3-domain-layer)
+  - [4. Application Orchestration Layer](#4-application-orchestration-layer)
+  - [5. Infrastructure & Integration Layer](#5-infrastructure--integration-layer)
+  - [6. Configuration & Environment Layer](#6-configuration--environment-layer)
+  - [7. Audit & Compliance Layer](#7-audit--compliance-layer)
+- [Cross-Layer Concerns](#cross-layer-concerns)
+  - [Security](#security)
+  - [Performance](#performance)
+  - [Extensibility](#extensibility)
+  - [Monitoring](#monitoring)
+- [Integration Points](#integration-points)
+- [Development Guidelines](#development-guidelines)
 
-# System Architecture Layers — Overview
+## 📚 Architecture Overview
 
-This document provides a high-level architecture of the **Auth Server** as a distributed, modular system composed of specialized layers. These layers are logical boundaries that organize the system’s responsibilities and behaviors. They are not tied to a specific technology or framework, but instead define the scope and flow of concerns across the platform.
+The Auth Server is a distributed, modular system designed to provide enterprise-grade authentication and authorization services. The architecture is organized into seven distinct layers, each with specific responsibilities and interfaces.
 
----
+### Key Principles
+
+1. **Layered Architecture**: Clear separation of concerns between layers
+2. **Modularity**: Each component is self-contained and replaceable
+3. **Security First**: Security considerations built into every layer
+4. **Scalability**: Designed for horizontal and vertical scaling
+5. **Extensibility**: Easy to add new features and integrations
+6. **Observability**: Comprehensive monitoring and logging
 
 ## 🧩 Layer-to-Apps Mapping
 
-The following table maps the concrete applications and libraries planned in this project to their respective architecture layers:
+This table shows how each application and library maps to the architectural layers:
 
-| Layer                          | Applications / Libraries                                                                 |
-|--------------------------------|------------------------------------------------------------------------------------------|
-| 📡 Communication Layer         | `apps.auth`, `apps.users`, `apps.permissions`, `apps.compliance`, `apps.webhooks`       |
-| 🔔 Notification Layer          | `apps.notifications`, `libs.mailer`, `libs.twilio`                                      |
-| 🧠 Domain Layer                | All `apps.*`, especially `apps.users`, `apps.permissions`, `apps.auth`, `apps.audit`    |
-| 🏗 Application Orchestration   | `apps.auth`, `apps.webhooks`, `apps.permissions`, `apps.notifications`, `apps.users`    |
-| 🧱 Infrastructure & Integration| `libs.aws`, `libs.mailer`, `libs.twilio`, `libs.totp`, `django_hsb_ratelimit`           |
-| 🧩 Configuration & Environment | All apps (via `.env` files or settings-based wrappers)                                  |
-| 📚 Audit & Compliance Layer    | `apps.compliance`, `apps.webhooks`, `apps.audit`, `apps.metrics`, `apps.security_events`|
+| Layer                          | Applications / Libraries                                                                 | Key Responsibilities                                                                                     |
+|--------------------------------|------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------|
+| 📡 Communication Layer         | `apps.auth`, `apps.users`, `apps.permissions`, `apps.compliance`, `apps.webhooks`       | API endpoints, protocol handling, request validation                                                    |
+| 🔔 Notification Layer          | `apps.notifications`, `libs.mailer`, `libs.twilio`                                      | Messaging, alerts, user notifications                                                                   |
+| 🧠 Domain Layer                | All `apps.*`, especially `apps.users`, `apps.permissions`, `apps.auth`, `apps.audit`    | Business logic, rules, validation                                                                       |
+| 🏗 Application Orchestration   | `apps.auth`, `apps.webhooks`, `apps.permissions`, `apps.notifications`, `apps.users`    | Workflow coordination, cross-component integration                                                       |
+| 🧱 Infrastructure & Integration| `libs.aws`, `libs.mailer`, `libs.twilio`, `libs.totp`, `django_hsb_ratelimit`           | External service integration, persistence, cryptography                                                 |
+| 🧩 Configuration & Environment | All apps (via `.env` files or settings-based wrappers)                                  | Runtime configuration, feature flags, environment-specific behavior                                     |
+| 📚 Audit & Compliance Layer    | `apps.compliance`, `apps.webhooks`, `apps.audit`, `apps.metrics`, `apps.security_events`| Logging, monitoring, compliance reporting, security event tracking                                      |
 
-> 🔗 See `README.md` and `XX-*.md` files for the complete breakdown of responsibilities and documentation per app.
+> 🔗 See [README.md](README.md) and individual app documentation files for detailed implementation details.
 
 ## 🖼️ System Architecture Diagram
 
-The following diagram illustrates the modular structure and key components of the system, organized across infrastructure, application, notification, compliance, and communication layers:
+The system architecture is visualized in the following diagram, showing the flow of data and responsibilities across layers:
 
 ![System Architecture Diagram](./system-architecture.drawio.png)
 
-## 📡 1. Communication Layer
+## 🏗 Architecture Layers
 
-Responsible for handling inbound and outbound communication between clients (applications, browsers, devices) and the platform.
+### 1. 📡 Communication Layer
 
-- Handles:
-  - HTTP(S) requests and responses
+**Purpose**: Handles all external communication with the system
+
+- **Key Components**:
   - REST API endpoints
-  - Cookie-based session flows
-  - CORS and CSRF validation
-- Interfaces:
-  - Frontend web clients (HTML forms, JS calls)
-  - Mobile or third-party apps via API
-- Concerned with:
-  - Protocol-level security (HTTPS, headers)
-  - Rate-limiting and throttling
-  - Request parsing and input validation
+  - GraphQL API (planned)
+  - WebSocket connections
+  - Protocol handlers
+  - Rate limiting
+  - CORS and CSRF protection
 
----
+- **Security Features**:
+  - HTTPS enforcement
+  - Request validation
+  - Input sanitization
+  - Rate limiting
+  - IP blocking
 
-## 🔔 2. Notification Layer
+- **Performance Considerations**:
+  - Caching strategies
+  - Connection pooling
+  - Request/response optimization
+  - Load balancing support
 
-Handles all outbound messaging and alerts to end users and administrators.
+### 2. 🔔 Notification Layer
 
-- Types of notifications:
-  - Email (e.g., verification, new device alert)
-  - SMS (e.g., MFA codes)
-  - Optional push/webhook integrations
-- Ensures:
-  - Delivery reliability
-  - Auditable log of outbound messages
-  - Flexible messaging templates and internationalization
+**Purpose**: Manages all outbound communications and alerts
 
----
+- **Notification Types**:
+  - Email (verification, alerts, notifications)
+  - SMS (MFA codes, alerts)
+  - Push notifications
+  - Webhooks
+  - In-app notifications
 
-## 🧠 3. Domain Layer
+- **Delivery Guarantees**:
+  - Retry mechanisms
+  - Delivery confirmation
+  - Error handling
+  - Status tracking
 
-Encapsulates the core business logic and policies of the system.
+- **Internationalization**:
+  - Multi-language support
+  - Regional compliance
+  - Localization
+  - Timezone handling
 
-- Manages:
-  - User lifecycle (registration, profile, verification)
-  - Authentication logic (passwords, MFA, sessions)
-  - Authorization model (roles, scopes, permissions)
-- Pure logic with no knowledge of infrastructure or protocols
-- The most testable and stable part of the system
+### 3. 🧠 Domain Layer
 
----
+**Purpose**: Contains core business logic and rules
 
-## 🏗 4. Application Orchestration Layer
+- **Key Concepts**:
+  - User entities and profiles
+  - Authentication workflows
+  - Authorization rules
+  - Session management
+  - Policy enforcement
+  - Validation rules
 
-Coordinates use cases by combining domain logic and infrastructure.
+- **Business Rules**:
+  - User lifecycle management
+  - Authentication policies
+  - Authorization workflows
+  - Compliance requirements
+  - Data validation
+  - Business invariants
 
-- Provides:
-  - Services for login, token issuance, verification flow, etc.
-  - Enforcement of system-wide policies and feature flags
-  - Flow logic based on user/account/system state
-- Converts abstract intent into actionable steps across components
+### 4. 🏗 Application Orchestration Layer
 
----
+**Purpose**: Coordinates system workflows and use cases
 
-## 🧱 5. Infrastructure & Integration Layer
+- **Workflow Management**:
+  - Authentication flows
+  - Registration processes
+  - MFA workflows
+  - Session handling
+  - Permission checks
+  - Event handling
 
-Provides access to external systems, persistence, and cryptographic tools.
+- **Cross-Component Integration**:
+  - Service coordination
+  - Event publishing
+  - State management
+  - Error handling
+  - Transaction management
 
-- Includes:
+### 5. 🧱 Infrastructure & Integration Layer
+
+**Purpose**: Provides access to external systems and services
+
+- **External Services**:
   - Database adapters (PostgreSQL, Redis)
-  - Email and SMS providers
-  - OAuth2 identity provider integrations (e.g., Google)
-  - JWT signing and encryption utilities
-- Implements interfaces used by orchestration and domain logic
+  - Message queues (SNS/SQS)
+  - Email providers
+  - SMS providers
+  - OAuth2 identity providers
+
+- **Technical Services**:
+  - Cryptography utilities
+  - JWT handling
+  - Rate limiting
+  - Caching
+  - Storage
+
+### 6. 🧩 Configuration & Environment Layer
+
+**Purpose**: Manages runtime configuration and environment-specific behavior
+
+- **Configuration Management**:
+  - Feature flags
+  - Environment settings
+  - Secret management
+  - Deployment-specific configurations
+  - Dynamic configuration
+
+- **Environment Handling**:
+  - Development
+  - Staging
+  - Production
+  - Testing
+  - Disaster recovery
+
+### 7. 📚 Audit & Compliance Layer
+
+**Purpose**: Ensures system observability and compliance
+
+- **Audit Features**:
+  - Immutable logging
+  - Event tracking
+  - Action logging
+  - Security event monitoring
+
+- **Compliance Features**:
+  - SOC 2/3 compliance
+  - GDPR/LGPD support
+  - Audit trails
+  - Access logs
+  - Security event correlation
+
+## 🛡️ Cross-Layer Concerns
+
+### Security
+
+- **Authentication**:
+  - Multi-factor authentication
+  - Password policies
+  - Session security
+  - Token management
+
+- **Authorization**:
+  - Role-based access control
+  - Resource-based permissions
+  - Policy enforcement
+  - Security groups
+
+- **Data Protection**:
+  - Encryption at rest
+  - Encryption in transit
+  - Data masking
+  - Access controls
+
+### Performance
+
+- **Optimization**:
+  - Caching strategies
+  - Database optimization
+  - Connection pooling
+  - Request optimization
+
+- **Scalability**:
+  - Horizontal scaling
+  - Vertical scaling
+  - Load balancing
+  - Resource management
+
+### Extensibility
+
+- **Integration Points**:
+  - Plugin architecture
+  - Extension points
+  - Custom providers
+  - Third-party integrations
+
+- **Customization**:
+  - Configurable workflows
+  - Custom rules
+  - Custom validation
+  - Custom authentication
+
+### Monitoring
+
+- **Metrics**:
+  - System health
+  - Performance metrics
+  - Error rates
+  - Usage statistics
+
+- **Alerting**:
+  - Performance alerts
+  - Security alerts
+  - System alerts
+  - Usage alerts
+
+## 🔄 Integration Points
+
+- **External Services**:
+  - Database connections
+  - Message queues
+  - Email providers
+  - SMS providers
+  - OAuth2 providers
+
+- **Internal Services**:
+  - API endpoints
+  - Event streams
+  - Message queues
+  - Caching layers
+
+## 🛠️ Development Guidelines
+
+- **Coding Standards**:
+  - Consistent naming
+  - Code organization
+  - Documentation requirements
+  - Testing requirements
+
+- **Testing**:
+  - Unit tests
+  - Integration tests
+  - Performance tests
+  - Security tests
+
+- **Documentation**:
+  - API documentation
+  - Architecture documentation
+  - Integration documentation
+  - Usage documentation
 
 ---
 
-## 🧩 6. Configuration & Environment Layer
-
-Centralizes all runtime configuration and feature flag management.
-
-- Covers:
-  - System feature toggles (MFA, auto-reg, verification)
-  - Environment secrets (keys, credentials)
-  - Deployment-dependent behavior (dev/stage/prod differences)
-
----
-
-## 📚 7. Audit & Compliance Layer
-
-Ensures operational visibility, logging, and traceability.
-
-- Captures:
-  - Security-critical events (logins, reauth, token activity)
-  - Administrative actions and permission changes
-  - Delivery confirmation of notifications
-- Supports:
-  - Alignment with OWASP, SOC 2/3 principles
-  - Integration with monitoring/alerting stacks
-
----
+> **Note**: This architecture document serves as the foundation for system design and implementation. Each component has its own detailed documentation that should be consulted for specific implementation details.

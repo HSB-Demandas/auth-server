@@ -3,9 +3,30 @@
 
 # 📧 Email Sender Library — `libs.email_sender`
 
-This module provides an extensible, provider-agnostic email sending interface that allows the system to support multiple third-party email services like SMTP, Mailgun, AWS SES, and others. It also supports parsing event notifications (when available) from these providers, such as delivery confirmations, opens, bounces, and spam reports.
+An extensible email sending interface that supports multiple providers (SMTP, Mailgun, AWS SES, etc.) and handles delivery events through webhooks.
 
 ---
+
+## 📋 Table of Contents
+
+- [Architecture](#architecture)
+- [Module Structure](#module-structure)
+- [Components](#components)
+- [Testing Strategy](#testing-strategy)
+- [Environment Variables](#environment-variables)
+- [Usage Examples](#usage-examples)
+- [Security Considerations](#security-considerations)
+- [Performance Considerations](#performance-considerations)
+
+## 🏗 Architecture
+
+### Core Principles
+
+1. **Provider Agnostic**: Supports multiple email providers
+2. **Event-Driven**: Handles delivery events and webhooks
+3. **Extensible**: Easy to add new providers
+4. **Type Safe**: Uses Pydantic for validation
+5. **Testable**: Mockable interfaces and providers
 
 ## 📁 Module Structure
 
@@ -13,102 +34,204 @@ This module provides an extensible, provider-agnostic email sending interface th
 libs/
 └── mailer/
     ├── __init__.py
-    ├── config.py                  # Global EmailConfig dataclass
-    ├── interface.py               # EmailProviderInterface (abstract contract)
-    ├── models.py                  # EmailMessage, Attachment, EmailResult
-    ├── router.py                  # Main entrypoint and dynamic dispatcher
+    ├── config.py                  # Configuration and settings
+    ├── interface.py               # Provider interfaces
+    ├── models.py                  # Email message models
+    ├── router.py                  # Provider routing
     ├── provider/
     │   ├── smtp_provider.py       # SMTP integration
     │   ├── mailgun_provider.py    # Mailgun integration
     │   ├── ses_provider.py        # AWS SES integration
     │   └── ... (other providers)
     ├── events/
-    │   ├── base_event.py          # EmailEvent base class + enums
-    │   ├── mailgun_events.py      # Parses Mailgun webhooks
-    │   └── ... (others)
+    │   ├── base_event.py          # Event base classes
+    │   ├── mailgun_events.py      # Mailgun webhook parsing
+    │   └── ... (other providers)
+    ├── types.py                   # Result types and enums
     └── tests/
         ├── unit/
+        │   ├── test_smtp.py
+        │   ├── test_mailgun.py
+        │   └── test_ses.py
         └── integration/
+            ├── test_send_real.py
+            └── test_webhook_real.py
 ```
 
----
+## ⚙️ Components
 
-## ⚙️ Provider Abstraction
+### 1. Configuration (`config.py`)
 
-Each provider must implement:
+- **Purpose**: Email service configuration
+- **Key Components**:
+  - `EmailConfig` dataclass
+  - Provider-specific settings
+  - Event handling configuration
 
-```python
-class EmailProviderInterface:
-    def send(self, message: EmailMessage) -> EmailResult
-```
+### 2. Provider Interface (`interface.py`)
 
-- `EmailMessage`: unified structure with subject, body, recipients, etc.
-- `EmailResult`: normalized result (success/failure + metadata)
+- **Purpose**: Provider contract definition
+- **API**:
+  ```python
+  class EmailProviderInterface:
+      def send(self, message: EmailMessage) -> EmailResult
+  ```
+- **Features**:
+  - Standardized message format
+  - Unified result handling
+  - Error abstraction
 
-The active provider is selected by the router dynamically based on `EmailConfig`.
+### 3. Message Models (`models.py`)
 
----
+- **Purpose**: Email message representation
+- **Models**:
+  - `EmailMessage`: Email content and metadata
+  - `Attachment`: File attachments
+  - `EmailResult`: Send operation result
+  - `EmailEvent`: Delivery events
 
-## 📬 Event Support
+### 4. Router (`router.py`)
 
-Some providers offer delivery events (via webhooks). When supported, each event parser must implement:
+- **Purpose**: Provider dispatching
+- **Features**:
+  - Dynamic provider selection
+  - Error handling
+  - Retry logic
+  - Rate limiting
 
-```python
-class EventParserInterface:
-    def parse_event(self, payload: dict) -> EmailEvent
-```
+### 5. Event System (`events/`)
 
-The parsed `EmailEvent` structure contains:
-- `event_type`: Enum (`DELIVERED`, `OPENED`, `BOUNCED`, etc.)
-- `timestamp`
-- `recipient`
-- `provider_message_id`
+- **Purpose**: Delivery event handling
+- **Features**:
+  - Webhook parsing
+  - Event normalization
+  - Event routing
+  - Error handling
 
-The system can consume these events and store or react accordingly.
+### 6. Error Handling (`types.py`)
 
----
+- **Purpose**: Domain-specific error abstraction
+- **Exceptions**:
+  - `EmailSendError`
+  - `InvalidEmailError`
+  - `ProviderError`
+  - `EventProcessingError`
 
-## 🔐 Configuration
-
-```python
-@dataclass
-class EmailConfig:
-    provider: Literal["smtp", "mailgun", "ses", ...]
-    from_email: str
-    provider_config: dict  # credentials and API keys per provider
-```
-
-All configuration must be passed from the consuming app. The library does not access `os.environ`.
-
----
-
-## ✅ Usage Example
-
-```python
-config = EmailConfig(provider="smtp", from_email="noreply@myapp.com", provider_config={...})
-email = EmailMessage(to="user@example.com", subject="Hello", html_body="<h1>Hi!</h1>")
-result = EmailRouter(config).send(email)
-```
-
----
-
-## ✅ Testing Strategy (TDD)
+## ✅ Testing Strategy
 
 ### Unit Tests
-- Each provider is mocked and tested independently
-- Verify correct routing and standardization
 
-### Integration Tests (disabled by default)
-- SMTP or Mailgun real tests using test accounts
+- **Core Logic**:
+  - Message validation
+  - Provider routing
+  - Event parsing
+  - Error handling
+- **Test Coverage**:
+  - 100% statement coverage
+  - Edge case handling
+  - Error scenarios
+  - Provider-specific tests
+
+### Integration Tests
+
+- **Real Integration**:
+  - Email sending
+  - Webhook processing
+  - Error handling
+  - Retry logic
+- **Requirements**:
+  - Test credentials
+  - Test messages
+  - Mock providers
+  - Event payloads
+
+## 🔐 Environment Variables
+
+No direct environment variable access inside the library. Configuration must be passed through `EmailConfig`.
+
+If required by the consuming app, recommended environment variables:
+
+| Variable Name     | Purpose                      | Required | Default |
+|-------------------|------------------------------|----------|---------|
+| `EMAIL_PROVIDER`  | Email provider name          | ✅       | —       |
+| `EMAIL_FROM`      | Default sender email         | ✅       | —       |
+| `SMTP_HOST`       | SMTP server host             | ❌       | —       |
+| `SMTP_PORT`       | SMTP server port             | ❌       | 587     |
+| `SMTP_USER`       | SMTP username                | ❌       | —       |
+| `SMTP_PASS`       | SMTP password                | ❌       | —       |
+| `MAILGUN_API_KEY` | Mailgun API key              | ❌       | —       |
+| `MAILGUN_DOMAIN`  | Mailgun domain               | ❌       | —       |
+| `AWS_ACCESS_KEY`  | AWS access key               | ❌       | —       |
+| `AWS_SECRET_KEY`  | AWS secret key               | ❌       | —       |
+
+## 🔄 Usage Examples
+
+### Basic Email Sending
+
+```python
+from libs.mailer.config import EmailConfig
+from libs.mailer.models import EmailMessage
+from libs.mailer.router import EmailRouter
+
+config = EmailConfig(
+    provider="smtp",
+    from_email="noreply@myapp.com",
+    provider_config={
+        "host": "smtp.example.com",
+        "port": 587,
+        "username": "user",
+        "password": "pass"
+    }
+)
+
+message = EmailMessage(
+    to="user@example.com",
+    subject="Hello",
+    html_body="<h1>Hi!</h1>",
+    text_body="Hi!"
+)
+
+router = EmailRouter(config)
+result = router.send(message)
+```
+
+### Event Handling
+
+```python
+from libs.mailer.events import EventParser
+from libs.mailer.models import EmailEvent
+
+async def handle_email_event(event: EmailEvent):
+    if event.event_type == EmailEventType.DELIVERED:
+        # Handle delivery
+        pass
+    elif event.event_type == EmailEventType.BOUNCED:
+        # Handle bounce
+        pass
+
+# Register event handler
+parser = EventParser()
+parser.register_handler(handle_email_event)
+```
+
+## 🛡 Security Considerations
+
+- **Content Security**: Email content sanitization
+- **Provider Security**: Credential management
+- **Event Security**: Webhook authentication
+- **Error Security**: Sensitive information masking
+- **Rate Limiting**: Provider-specific limits
+- **Connection Security**: TLS/SSL enforcement
+
+## 🚀 Performance Considerations
+
+- **Connection Pooling**: Efficient provider connections
+- **Batch Processing**: Optimized sending
+- **Async Operations**: Non-blocking I/O
+- **Template Caching**: Efficient template rendering
+- **Retry Strategy**: Configurable retry logic
+- **Error Handling**: Fast failure paths
 
 ---
 
-## 🤖 LLM Guidelines
-
-- Do not access environment variables inside the library.
-- Use clean façades like `EmailRouter.send(...)`.
-- Each provider must follow the same interface.
-- Add new integrations in `provider/`, and register in `router.py`.
-- Events should be parsed into `EmailEvent` with a common structure.
-
----
+> **Note**: This library is designed for production use with multiple email providers. For development, use test credentials and mock providers.

@@ -1,22 +1,33 @@
 
 
-# 🔐 Django App: `apps.mfa`
+# 🔐 Django App: `apps.django_hsb_totp`
 
-This app provides a full TOTP integration into the Django ecosystem by wrapping the `libs.mfa_authenticator` library and exposing endpoints for pairing and token validation. It is reusable, installable in any Django project, and integrates seamlessly with frontend flows.
-
----
-
-## 🎯 Purpose
-
-- Expose endpoints to enable/disable MFA and validate tokens
-- Store and manage per-user TOTP configuration securely
-- Provide QR code-based app pairing
-- Validate user-submitted tokens
-- Support secure and configurable flows
+A reusable Django app for TOTP-based MFA integration, providing secure token generation, validation, and QR code generation for app pairing.
 
 ---
 
-## 📁 App Structure
+## 📋 Table of Contents
+
+- [Architecture](#architecture)
+- [Module Structure](#module-structure)
+- [Components](#components)
+- [Testing Strategy](#testing-strategy)
+- [Environment Variables](#environment-variables)
+- [Usage Examples](#usage-examples)
+- [Security Considerations](#security-considerations)
+- [Performance Considerations](#performance-considerations)
+
+## 🏗 Architecture
+
+### Core Principles
+
+1. **Security First**: RFC 6238 compliant implementation
+2. **Extensible**: Flexible configuration options
+3. **User Experience**: QR code generation and validation
+4. **Error Handling**: Robust error management
+5. **Testable**: Mockable interfaces
+
+## 📁 Module Structure
 
 ```
 apps/
@@ -33,69 +44,154 @@ apps/
     ├── migrations/
     └── tests/
         ├── unit/
+        │   ├── test_models.py
+        │   ├── test_services.py
+        │   └── test_views.py
         └── integration/
+            ├── test_token.py
+            └── test_pairing.py
 ```
 
----
+## ⚙️ Components
 
-## 🔐 Model
+### 1. Models (`models.py`)
 
-### `MFASecret`
+- **Purpose**: Secure storage of TOTP secrets
+- **Key Models**:
+  - `MFASecret`: Encrypted TOTP secrets per user
+  - `MFAToken`: Optional token tracking
+  - `MFASession`: Optional session tracking
 
-| Field          | Type           | Description                            |
-|----------------|----------------|----------------------------------------|
-| `id`           | UUID           | Primary key                            |
-| `user`         | FK to User     | One-to-one with user                   |
-| `secret`       | EncryptedField | Base32 secret for TOTP                 |
-| `enabled`      | BooleanField   | Is MFA enabled for this user?          |
-| `created_at`   | DateTimeField  | Timestamp                              |
-| `updated_at`   | DateTimeField  | Timestamp                              |
+### 2. Services (`services.py`)
 
-> All secrets must be encrypted at rest using a proper encryption strategy.
+- **Purpose**: Core MFA logic
+- **Features**:
+  - Token generation
+  - Token validation
+  - QR code generation
+  - Session management
+  - Error handling
 
----
+### 3. API (`views.py` + `serializers.py`)
 
-## 🌐 API Endpoints
+- **Purpose**: REST API endpoints
+- **Endpoints**:
+  - `/api/mfa/setup/` - Generate QR code
+  - `/api/mfa/verify/` - Validate token
+  - `/api/mfa/disable/` - Disable MFA
 
-### 🔐 TOTP Management Endpoints
+### 4. Integration (`integrations/`)
 
-| Method | URL                    | Description                                 |
-|--------|------------------------|---------------------------------------------|
-| GET    | `/api/mfa/setup/`      | Returns pairing QR code and URI             |
-| POST   | `/api/mfa/verify/`     | Validates submitted TOTP token              |
-| POST   | `/api/mfa/disable/`    | Disables MFA for the authenticated user <br>_Planned feature_ |
+- **Purpose**: Library integration
+- **Features**:
+  - TOTP generation
+  - Token validation
+  - QR code generation
+  - Error handling
 
----
+### 5. Error Handling (`exceptions.py`)
 
-## 🔐 Setup Flow
+- **Purpose**: Domain-specific error abstraction
+- **Exceptions**:
+  - `MFATokenError`
+  - `MFASecretError`
+  - `MFASessionError`
+  - `MFAPairingError`
 
-1. User initiates MFA pairing
-2. App generates secret + QR code via `libs.mfa_authenticator`
-3. Returns base64 QR image or URI
-4. User scans and enters token
-5. Backend verifies token → enables MFA
-
----
-
-## ✅ TDD Strategy
+## ✅ Testing Strategy
 
 ### Unit Tests
-- Secret creation and encryption
-- Token validation logic
-- View serialization and error handling
+
+- **Core Logic**:
+  - Secret generation
+  - Token validation
+  - QR code generation
+  - Session management
+- **Test Coverage**:
+  - 100% statement coverage
+  - Edge case handling
+  - Error scenarios
+  - Token drift testing
 
 ### Integration Tests
-- End-to-end: generate → pair → validate
-- Token expiration / drift window edge cases
 
----
+- **Internal Integration**:
+  - Database operations
+  - API endpoints
+  - Session management
+  - Error handling
+- **External Integration**:
+  - TOTP generation
+  - Token validation
+  - QR code generation
+  - Session tracking
 
-## 🤖 LLM Implementation Guidelines
+## 🔐 Environment Variables
 
-- Do not store plain secrets — always encrypt in `MFASecret`
-- Use `libs.mfa_authenticator` internally for pairing and validation
-- Provide clean views with DRF serializers
-- Do not expose token content or secret
-- Frontend must submit token via `/mfa/verify/` for validation
+No direct environment variable access inside the app. All configuration must be passed through Django settings.
 
----
+If required by the consuming app, recommended settings:
+
+| Setting Name               | Purpose                      | Required | Default |
+|----------------------------|------------------------------|----------|---------|
+| `MFA_SECRET_ENCRYPTION_KEY` | Encryption key for secrets   | ✅       | —       |
+| `MFA_TOKEN_VALID_WINDOW`    | Token validation window      | ❌       | 30      |
+| `MFA_QR_CODE_FORMAT`        | QR code format (PNG/SVG)    | ❌       | PNG     |
+| `MFA_SESSION_TTL`           | Session TTL (seconds)       | ❌       | 3600    |
+
+## 🔄 Usage Examples
+
+### Basic MFA Setup
+
+```python
+from apps.mfa.services import setup_mfa
+
+# Generate MFA secret and QR code
+result = setup_mfa(user)
+
+# Get QR code for app pairing
+qr_code = result.qr_code
+```
+
+### Token Validation
+
+```python
+from apps.mfa.services import validate_mfa_token
+
+# Validate user-submitted token
+is_valid = validate_mfa_token(
+    user=user,
+    token="123456"
+)
+```
+
+### Session Management
+
+```python
+from apps.mfa.services import create_mfa_session
+
+# Create MFA session
+session = create_mfa_session(user)
+
+# Check session status
+if session.is_valid:
+    # Process valid session
+    pass
+```
+
+## 🛡 Security Considerations
+
+- **Secret Storage**: Always encrypted
+- **Token Validation**: Secure implementation
+- **QR Code**: Secure URI generation
+- **Error Handling**: No sensitive information
+- **Rate Limiting**: Token validation protection
+- **Session Security**: Secure session management
+
+## 🚀 Performance Considerations
+
+- **Token Generation**: Efficient secret generation
+- **Token Validation**: Fast token verification
+- **QR Code**: Optimized image generation
+- **Session Management**: Efficient session tracking
+- **Error Handling**: Fast failure paths

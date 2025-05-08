@@ -1,20 +1,31 @@
-<file name=0 path=django_hsb_twilio.md># 📦 Django App: `apps.twilio`
+# 📦 Django App: `apps.django_hsb_twilio`
 
-This app provides a Django-native integration with the `libs.twilio_sms` library, enabling SMS delivery via Twilio with future extensibility for other Twilio services (voice, WhatsApp, video, etc.). The app is fully installable, supports DRF endpoints, persistence, and clean configuration through Django settings.
-
----
-
-## 🎯 Purpose
-
-- Send SMS via Twilio using `libs.twilio_sms`
-- Track SMS delivery logs and status
-- Expose HTTP endpoints for sending SMS
-- Receive delivery status updates via webhook
-- Prepare for future Twilio service integrations
+A reusable Django app for Twilio integration, supporting SMS delivery, verification, and webhook handling with proper error handling and rate limiting.
 
 ---
 
-## 📁 App Structure
+## 📋 Table of Contents
+
+- [Architecture](#architecture)
+- [Module Structure](#module-structure)
+- [Components](#components)
+- [Testing Strategy](#testing-strategy)
+- [Environment Variables](#environment-variables)
+- [Usage Examples](#usage-examples)
+- [Security Considerations](#security-considerations)
+- [Performance Considerations](#performance-considerations)
+
+## 🏗 Architecture
+
+### Core Principles
+
+1. **Provider Integration**: Twilio SMS and verification services
+2. **Event-Driven**: Webhook handling for status updates
+3. **Rate Limiting**: Built-in protection
+4. **Extensible**: Future service integration
+5. **Error Handling**: Robust error management
+
+## 📁 Module Structure
 
 ```
 apps/
@@ -33,73 +44,168 @@ apps/
     ├── migrations/
     └── tests/
         ├── unit/
+        │   ├── test_models.py
+        │   ├── test_services.py
+        │   └── test_views.py
         └── integration/
+            ├── test_webhook.py
+            └── test_verification.py
 ```
 
----
+## ⚙️ Components
 
-## 🧱 Model
+### 1. Models (`models.py`)
 
-### `SMSLog`
+- **Purpose**: SMS tracking and persistence
+- **Key Models**:
+  - `SMSLog`: SMS delivery tracking
+  - `VerificationSession`: Optional verification tracking
+  - `WebhookEvent`: Optional webhook tracking
 
-| Field           | Type           | Description                             |
-|------------------|----------------|-----------------------------------------|
-| `id`             | UUID           | Primary key                             |
-| `to_phone`       | CharField      | Recipient phone number                  |
-| `from_phone`     | CharField      | Sender number (Twilio-registered)       |
-| `message`        | TextField      | Body of the SMS                         |
-| `status`         | CharField      | `QUEUED`, `SENT`, `FAILED`, `DELIVERED`, etc. |
-| `provider_msg_id`| CharField      | Twilio SID for tracking                 |
-| `last_event_time`| DateTimeField  | Last event update timestamp             |
-| `created_at`     | DateTimeField  |                                         |
-| `updated_at`     | DateTimeField  |                                         |
+### 2. Services (`services.py`)
 
----
+- **Purpose**: Core Twilio integration
+- **Features**:
+  - SMS sending
+  - Verification flow
+  - Webhook processing
+  - Rate limiting
+  - Error handling
 
-## 🌐 API Endpoints
+### 3. API (`views.py` + `serializers.py`)
 
-### 📤 SMS Sending and Tracking
+- **Purpose**: REST API endpoints
+- **Endpoints**:
+  - `/api/sms/send/` - Send SMS
+  - `/api/sms/status/` - Get status
+  - `/api/sms/verify/` - Verification endpoints
+  - `/webhooks/sms/` - Webhook endpoint
 
-| Path                             | Method | Purpose                                |
-|----------------------------------|--------|----------------------------------------|
-| `/api/sms/send/`                | POST   | Send SMS via Twilio                    |
-| `/api/sms/<uuid:id>/status/`    | GET    | Query status of a specific SMS         |
+### 4. Integration (`integrations/`)
 
-### 📡 Webhook Receiver
+- **Purpose**: Twilio library integration
+- **Features**:
+  - SMS sending
+  - Verification
+  - Status updates
+  - Error handling
 
-| Path                             | Method | Purpose                                |
-|----------------------------------|--------|----------------------------------------|
-| `/webhooks/sms/twilio/`         | POST   | Receive delivery status updates from Twilio |
+### 5. Error Handling (`exceptions.py`)
 
-### 🔐 Verification Code API
+- **Purpose**: Domain-specific error abstraction
+- **Exceptions**:
+  - `TwilioError`
+  - `VerificationError`
+  - `RateLimitError`
+  - `WebhookError`
 
-| Path                                  | Method | Purpose                                      |
-|---------------------------------------|--------|----------------------------------------------|
-| `/api/sms/verify/start/`             | POST   | Initiate verification code via SMS           |
-| `/api/sms/verify/check/`             | POST   | Validate submitted verification code         |
+## ✅ Testing Strategy
 
----
+### Unit Tests
 
-## 🔑 Verification Code Support
+- **Core Logic**:
+  - SMS sending
+  - Verification flow
+  - Webhook processing
+  - Rate limiting
+- **Test Coverage**:
+  - 100% statement coverage
+  - Edge case handling
+  - Error scenarios
+  - Rate limit testing
 
-This app also supports sending and validating time-limited SMS verification codes using Twilio's verification services or a custom implementation based on `libs.twilio_sms`.
+### Integration Tests
 
----
+- **Internal Integration**:
+  - Database operations
+  - API endpoints
+  - Webhook processing
+  - Verification flow
+- **External Integration**:
+  - Twilio SMS integration
+  - Webhook handling
+  - Rate limiting
+  - Error handling
 
-### 🌐 Verification API Endpoints
+## 🔐 Environment Variables
 
-| Path                                  | Method | Purpose                                      |
-|---------------------------------------|--------|----------------------------------------------|
-| `/api/sms/verify/start/`             | POST   | Initiates SMS verification code to a number |
-| `/api/sms/verify/check/`             | POST   | Validates submitted SMS verification code   |
+No direct environment variable access inside the app. All configuration must be passed through Django settings.
 
----
+If required by the consuming app, recommended settings:
 
-### 🧱 Token Storage Note
+| Setting Name               | Purpose                      | Required | Default |
+|----------------------------|------------------------------|----------|---------|
+| `TWILIO_ACCOUNT_SID`       | Twilio account SID           | ✅       | —       |
+| `TWILIO_AUTH_TOKEN`        | Twilio auth token            | ✅       | —       |
+| `TWILIO_PHONE_NUMBER`      | Twilio phone number          | ✅       | —       |
+| `TWILIO_RATE_LIMIT`        | SMS rate limit (per minute)  | ❌       | 60      |
+| `TWILIO_RETRY_DELAY`       | Retry delay (seconds)        | ❌       | 300     |
+| `TWILIO_WEBHOOK_SECRET`    | Webhook validation secret    | ❌       | —       |
 
-When using Twilio Verify, you do **not need to store verification tokens**. Twilio manages the entire lifecycle of code generation, delivery, expiration, and validation. Your backend simply delegates to Twilio for sending and verifying tokens.
+## 🔄 Usage Examples
 
-All you need are the following:
+### Basic SMS Sending
+
+```python
+from apps.twilio.services import send_sms
+
+# Send SMS
+result = send_sms(
+    to_phone="+1234567890",
+    message="Your verification code is 123456",
+    from_phone="+0987654321"
+)
+```
+
+### SMS Verification
+
+```python
+from apps.twilio.services import start_verification, check_verification
+
+# Start verification
+session = start_verification(
+    phone_number="+1234567890",
+    channel="sms"
+)
+
+# Check verification
+is_valid = check_verification(
+    session_id=session.id,
+    code="123456"
+)
+```
+
+### Webhook Processing
+
+```python
+from apps.twilio.integrations.sender import process_webhook
+
+@csrf_exempt
+@require_POST
+def webhook_view(request):
+    event = process_webhook(request.body)
+    if event:
+        update_sms_status(event)
+    return JsonResponse({"status": "ok"})
+```
+
+## 🛡 Security Considerations
+
+- **Credential Security**: Twilio credentials management
+- **Webhook Security**: Request validation
+- **Rate Limiting**: SMS sending protection
+- **Error Security**: Sensitive information masking
+- **Session Security**: Verification session management
+- **Connection Security**: TLS/SSL enforcement
+
+## 🚀 Performance Considerations
+
+- **Connection Pooling**: Efficient Twilio connections
+- **Batch Operations**: Optimized sending
+- **Caching Strategy**: Rate limit tracking
+- **Error Handling**: Fast failure paths
+- **Middleware**: Efficient request processing
+- **Webhook Processing**: Efficient event handlingAll you need are the following:
 
 - `/api/sms/verify/start/` — to initiate token delivery
 - `/api/sms/verify/check/` — to validate submitted token

@@ -2,111 +2,198 @@
 
 # 📦 Twilio Library — `libs.twilio_sms`
 
-This module provides a structured, testable wrapper around the Twilio SDK for sending SMS messages and handling token-based verification (e.g., MFA flows).
+A structured, testable wrapper around the Twilio SDK for SMS messaging and verification flows.
 
 ---
+
+## 📋 Table of Contents
+
+- [Architecture](#architecture)
+- [Module Structure](#module-structure)
+- [Components](#components)
+- [Testing Strategy](#testing-strategy)
+- [Environment Variables](#environment-variables)
+- [Usage Examples](#usage-examples)
+- [Security Considerations](#security-considerations)
+
+## 🏗 Architecture
+
+### Core Principles
+
+1. **Isolation**: No direct SDK access from application code
+2. **Abstraction**: Clear façades for SMS and verification
+3. **Error Handling**: Domain-specific exceptions
+4. **Testability**: Mockable interfaces and integration points
 
 ## 📁 Module Structure
 
 ```
 libs/
 └── twilio/
-    └── SMS/
-        ├── __init__.py
-        ├── config.py            # Defines TwilioConfig for injected credentials
-        ├── client.py            # Initializes the Twilio REST client
-        ├── sender.py            # Sends SMS messages
-        ├── verifier.py          # Starts and checks verification flows
-        ├── exceptions.py        # Domain-specific error handling
-        ├── types.py             # Custom types for results/status
-        └── tests/
-            ├── unit/
-            │   ├── test_sender.py
-            │   ├── test_verifier.py
-            │   └── test_exceptions.py
-            └── integration/
-                ├── test_send_sms_real.py
-                └── test_validate_token_real.py
+    ├── __init__.py
+    ├── config.py            # Configuration and settings
+    ├── client.py            # SDK wrapper
+    ├── sender.py            # SMS functionality
+    ├── verifier.py          # Verification flows
+    ├── exceptions.py        # Error handling
+    ├── types.py             # Result types and enums
+    └── tests/
+        ├── unit/
+        │   ├── test_sender.py
+        │   ├── test_verifier.py
+        │   └── test_exceptions.py
+        └── integration/
+            ├── test_send_sms_real.py
+            └── test_validate_token_real.py
 ```
 
----
+## ⚙️ Components
 
-## ⚙️ Components Description
+### 1. Configuration (`config.py`)
 
-### `config.py`
-- Contains `TwilioConfig` dataclass:
-  - `account_sid: str`
-  - `auth_token: str`
-  - `service_sid: str` (used for verification)
-- These values must be passed from the application (not read via `os.environ`).
+- **Purpose**: Centralized configuration management
+- **Key Components**:
+  - `TwilioConfig` dataclass
+  - Configuration validation
+  - Environment variable mapping
 
-### `client.py`
-- Initializes a Twilio client using `TwilioConfig`.
-- Exposes the raw client internally to `sender` and `verifier`.
+### 2. Client (`client.py`)
 
-### `sender.py`
-- Provides a façade function:
+- **Purpose**: SDK wrapper with error handling
+- **Features**:
+  - Twilio REST client initialization
+  - Request retry logic
+  - Error translation
+
+### 3. SMS Sender (`sender.py`)
+
+- **Purpose**: SMS message handling
+- **API**:
   ```python
-  def send_sms(phone_number: str, message: str) -> SMSDeliveryResult
+  def send_sms(
+      phone_number: str,
+      message: str,
+      sender_id: Optional[str] = None
+  ) -> SMSDeliveryResult
   ```
-- Returns a domain object or result type.
+- **Returns**: Result object with status and metadata
 
-### `verifier.py`
-- Two façade functions:
+### 4. Verifier (`verifier.py`)
+
+- **Purpose**: Token-based verification
+- **API**:
   ```python
-  def start_verification(phone_number: str) -> VerificationResult
-  def check_verification(phone_number: str, code: str) -> VerificationStatus
+  def start_verification(
+      phone_number: str,
+      channel: VerificationChannel = VerificationChannel.SMS
+  ) -> VerificationResult
+
+  def check_verification(
+      phone_number: str,
+      code: str
+  ) -> VerificationStatus
   ```
 
-### `exceptions.py`
-- Maps Twilio errors into project-friendly exceptions like:
+### 5. Error Handling (`exceptions.py`)
+
+- **Purpose**: Domain-specific error abstraction
+- **Exceptions**:
   - `InvalidPhoneNumberError`
   - `TokenExpiredError`
   - `VerificationFailedError`
+  - `TwilioAPIError`
+  - `RateLimitError`
 
----
+## ✅ Testing Strategy
 
-## ✅ Testing Strategy (TDD)
+### Unit Tests
 
-### 🔹 Unit Tests
+- **Core Logic**:
+  - SMS sending flows
+  - Verification workflows
+  - Error handling
+- **Test Coverage**:
+  - 100% statement coverage
+  - Edge case handling
+  - Error scenarios
 
-#### `test_sender.py`
-- Should successfully send SMS with mocked client
-- Should raise domain errors for invalid numbers or SDK failures
-- Should simulate retryable exceptions
+### Integration Tests
 
-#### `test_verifier.py`
-- Should simulate verification start (mocked)
-- Should simulate valid and invalid code checks
-- Should handle expired tokens
-
-#### `test_exceptions.py`
-- Ensures proper mapping of Twilio exceptions
-
----
-
-### 🔸 Integration Tests (disabled by default)
-
-#### `test_send_sms_real.py`
-- Sends a real SMS using Twilio sandbox/test credentials
-- Verifies HTTP 2XX response and valid SID
-
-#### `test_validate_token_real.py`
-- Starts and checks verification on a real device (manual test flow)
-- Tests both correct and incorrect token input
-
----
+- **Real Integration**:
+  - SMS sending
+  - Token verification
+  - Error handling
+- **Requirements**:
+  - Test credentials
+  - Sandbox environment
+  - Manual verification steps
 
 ## 🔐 Environment Variables
 
-These variables should be set in the application and passed into the library:
+No direct environment variable access inside the library. Configuration must be passed through `TwilioConfig`.
 
-| Variable Name      | Purpose                          | Required | Default |
-|--------------------|----------------------------------|----------|---------|
-| `TWILIO_ACCOUNT_SID` | Twilio account SID               | ✅       | —       |
-| `TWILIO_AUTH_TOKEN`  | Twilio auth token                | ✅       | —       |
-| `TWILIO_SERVICE_SID` | Twilio Verify service SID        | ✅       | —       |
+If required by the consuming app, recommended environment variables:
 
-Note: These should be injected via `TwilioConfig` and never accessed using `os.environ` inside the library.
+| Variable Name     | Purpose                      | Required | Default |
+|-------------------|------------------------------|----------|---------|
+| `TWILIO_ACCOUNT_SID`  | Twilio account SID           | ✅       | —       |
+| `TWILIO_AUTH_TOKEN`   | Twilio auth token            | ✅       | —       |
+| `TWILIO_SERVICE_SID`  | Twilio verification service  | ❌       | —       |
+| `TWILIO_SENDER_ID`    | Custom sender ID             | ❌       | —       |
+
+## 🔄 Usage Examples
+
+### Basic SMS Sending
+
+```python
+from libs.twilio.config import TwilioConfig
+from libs.twilio.sender import send_sms
+
+config = TwilioConfig(
+    account_sid="your_account_sid",
+    auth_token="your_auth_token"
+)
+
+result = send_sms(
+    config=config,
+    phone_number="+1234567890",
+    message="Your verification code is 123456"
+)
+```
+
+### Verification Flow
+
+```python
+from libs.twilio.config import TwilioConfig
+from libs.twilio.verifier import start_verification, check_verification
+
+config = TwilioConfig(
+    account_sid="your_account_sid",
+    auth_token="your_auth_token",
+    service_sid="your_service_sid"
+)
+
+# Start verification
+result = start_verification(
+    config=config,
+    phone_number="+1234567890",
+    channel=VerificationChannel.SMS
+)
+
+# Check code
+status = check_verification(
+    config=config,
+    phone_number="+1234567890",
+    code="123456"
+)
+```
+
+## 🛡 Security Considerations
+
+- **Rate Limiting**: Built-in rate limiting for SMS and verification
+- **Error Masking**: No sensitive information in error messages
+- **Validation**: Strict phone number and token validation
+- **Timeouts**: Secure timeouts for verification attempts
+- **Logging**: Secure audit logging of all operations
 
 ---

@@ -1,84 +1,108 @@
-# 🚦 Django Library: `django_hsb_ratelimit`
+# 🔄 Rate Limit Library — `django_hsb_ratelimit`
 
-## 📌 Purpose
-
-This library provides configurable and extensible rate-limiting functionality for Django projects. It supports per-endpoint, per-user, per-IP, and per-realm throttling strategies using Redis as a backend. The library is integrated with Django and Django REST Framework (DRF) but is designed with clear boundaries between Django integration and the core logic.
+A flexible rate limiting system for Django and DRF endpoints, supporting various key types (IP, user, etc.) and configurable time windows.
 
 ---
+
+## 📋 Table of Contents
+
+- [Architecture](#architecture)
+- [Module Structure](#module-structure)
+- [Components](#components)
+- [Testing Strategy](#testing-strategy)
+- [Environment Variables](#environment-variables)
+- [Usage Examples](#usage-examples)
+- [Security Considerations](#security-considerations)
+- [Performance Considerations](#performance-considerations)
+
+## 🏗 Architecture
+
+### Core Principles
+
+1. **Flexible Keying**: Multiple key types (IP, user, etc.)
+2. **Configurable Limits**: Customizable rate limits
+3. **Distributed Storage**: Redis-based implementation
+4. **Middleware Integration**: Django/DRF compatibility
+5. **Error Handling**: Customizable error responses
 
 ## 📁 Module Structure
 
 ```
-django_hsb_ratelimit/
-├── decorators.py        # Django view decorators
-├── throttles.py         # DRF-compatible throttle classes
-├── core.py              # Pure logic: rate calculation, key generation
-├── backends/
-│   └── redis.py         # Redis-based counter backend
-├── exceptions.py        # Custom exceptions (e.g. RateLimitExceeded)
-├── utils.py             # IP hashing, fingerprinting, key formatters
-├── settings.py          # Configurable settings with defaults
-└── tests/
-    ├── unit/
-    └── integration/
+libs/
+└── ratelimit/
+    ├── __init__.py
+    ├── config.py            # Configuration and settings
+    ├── decorators.py        # Rate limit decorator
+    ├── storage.py           # Redis storage
+    ├── middleware.py        # Django middleware
+    ├── exceptions.py        # Error handling
+    ├── types.py             # Result types and enums
+    └── tests/
+        ├── unit/
+        │   ├── test_decorator.py
+        │   ├── test_storage.py
+        │   └── test_middleware.py
+        └── integration/
+            ├── test_redis_real.py
+            └── test_http_real.py
 ```
 
----
+## ⚙️ Components
 
-## 🧠 Rate Limiting Strategy
+### 1. Configuration (`config.py`)
 
-- Uses Redis with TTL-based keys for fast atomic checks
-- Key scopes supported:
-  - `ip` (based on request IP)
-  - `user` (based on `request.user`)
-  - `realm` (if `request.realm` is set)
-  - `composite` (e.g., IP + user, app + endpoint)
-- Supports multiple limits per route (e.g., `5/m`, `100/day`)
+- **Purpose**: Rate limit settings
+- **Key Components**:
+  - `RateLimitConfig` dataclass
+  - Redis connection settings
+  - Default limits and windows
+  - Error message customization
 
----
+### 2. Decorator (`decorators.py`)
 
-## 🧪 Example Usage
+- **Purpose**: Rate limit application
+- **API**:
+  ```python
+  def rate_limit(
+      key: str = "ip",  # or "user", "path", etc.
+      limit: str = "100/m",  # e.g. "100/m", "500/h", "1000/d"
+      scope: str = None  # optional scope name
+  ) -> Callable
+  ```
+- **Features**:
+  - Flexible key types
+  - Customizable limits
+  - Multiple scopes
+  - Error handling
 
-### 🎯 With Django View Decorator
+### 3. Storage (`storage.py`)
 
-```python
-from django_hsb_ratelimit.decorators import rate_limit
+- **Purpose**: Rate limit tracking
+- **Features**:
+  - Redis implementation
+  - Automatic cleanup
+  - Concurrent access
+  - Multiple scopes
 
-@rate_limit(key="ip", limit="5/m", scope="auth_login")
-def login_view(request):
-    ...
-```
+### 4. Middleware (`middleware.py`)
 
-### 🔄 With DRF Throttle Class
+- **Purpose**: Request handling
+- **Features**:
+  - Rate limit enforcement
+  - Error responses
+  - Custom error messages
+  - Request logging
 
-```python
-# settings.py
+### 5. Error Handling (`exceptions.py`)
 
-REST_FRAMEWORK = {
-    "DEFAULT_THROTTLE_CLASSES": [
-        "django_hsb_ratelimit.throttles.RateScopedThrottle",
-    ],
-    "DEFAULT_THROTTLE_RATES": {
-        "auth_login": "5/min",
-        "registration": "2/min",
-    }
-}
-```
+- **Purpose**: Domain-specific error abstraction
+- **Exceptions**:
+  - `RateLimitExceeded`
+  - `InvalidRateLimit`
+  - `StorageError`
+  - `ConfigurationError`
 
----
-
-## 🔧 Settings
-
-| Setting                             | Description                                                  |
-|-------------------------------------|--------------------------------------------------------------|
-| `RATE_LIMIT_REDIS_URL`              | Redis URL to store rate counters                             |
-| `RATE_LIMIT_DEFAULT_TTL`            | Default TTL in seconds (used if not derived from rate)       |
-| `RATE_LIMIT_NAMESPACE`              | Prefix for Redis keys to isolate environments                |
-| `RATE_LIMIT_ENABLED`                | Toggle global rate limiting                                  |
-
----
-
-## ✅ TDD Strategy
+## ✅ Testing Strategy
 
 ### Unit Tests
 - Token bucket counter math and key resolution

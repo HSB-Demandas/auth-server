@@ -1,20 +1,31 @@
 # 🏰 Django App: `apps.realms`
 
-This app provides the foundation for multitenancy in the system by introducing the concept of "Realms" — isolated authentication domains. Each realm encapsulates users, applications, permissions, and configuration within its own namespace. This app is foundational and must be installed first in any Django project that uses authentication or user scoping.
+A foundational Django app for multitenancy, providing isolated authentication domains (realms) for users, applications, and permissions.
 
 ---
 
-## 🎯 Purpose
+## 📋 Table of Contents
 
-- Represent isolated identity domains (realms) across the platform
-- Scope users, applications, permissions, and policies by realm
-- Allow realm management via Django Admin and API
-- Provide hooks for realm-based filtering and validation
-- Support default realm-wide configurations and display metadata
+- [Architecture](#architecture)
+- [Module Structure](#module-structure)
+- [Components](#components)
+- [Testing Strategy](#testing-strategy)
+- [Environment Variables](#environment-variables)
+- [Usage Examples](#usage-examples)
+- [Security Considerations](#security-considerations)
+- [Performance Considerations](#performance-considerations)
 
----
+## 🏗 Architecture
 
-## 📁 App Structure
+### Core Principles
+
+1. **Isolation**: Complete realm isolation
+2. **Scalability**: Efficient realm switching
+3. **Extensibility**: Custom realm behavior
+4. **Security**: Strict access control
+5. **Configurability**: Flexible realm settings
+
+## 📁 Module Structure
 
 ```
 apps/
@@ -33,71 +44,162 @@ apps/
     ├── migrations/
     └── tests/
         ├── unit/
-        └── integration/
+        │   ├── test_models.py
+        │   ├── test_context.py
+        │   └── test_permissions.py
+        ├── internal_integration/
+        │   ├── test_views.py
+        │   └── test_middleware.py
+        └── external_integration/
+            └── test_auth.py
 ```
 
----
+## ⚙️ Components
 
-## 🧱 Model
+### 1. Models (`models.py`)
 
-### `Realm`
+- **Purpose**: Realm definition and configuration
+- **Key Models**:
+  - `Realm`: Realm definition
+  - `RealmConfig`: Optional configuration
+  - `RealmTheme`: Optional theming
 
-| Field             | Type           | Description                              |
-|-------------------|----------------|------------------------------------------|
-| `id`              | UUID           | Primary key                              |
-| `slug`            | CharField      | Unique string identifier (e.g. `myrealm`)|
-| `name`            | CharField      | Display name                             |
-| `is_active`       | BooleanField   | Whether realm is enabled or blocked      |
-| `branding_logo`   | ImageField     | Optional logo for frontend customization |
-| `theme`           | JSONField      | Optional theme parameters (colors, etc.) |
-| `default_language`| CharField      | Optional default language code           |
-| `created_at`      | DateTimeField  | Timestamp                                |
-| `updated_at`      | DateTimeField  | Timestamp                                |
+### 2. Services (`services.py`)
 
----
+- **Purpose**: Core realm logic
+- **Features**:
+  - Realm switching
+  - Context management
+  - Configuration handling
+  - Error handling
 
-## 🌐 Realm Context Handling
+### 3. Context (`context.py`)
 
-- All authenticated requests must resolve realm context from:
-  - `X-Realm` header
-  - JWT `realm` claim
-  - Internal execution context (in background jobs or pub/sub)
+- **Purpose**: Realm context management
+- **Features**:
+  - Header extraction
+  - JWT parsing
+  - Context injection
+  - Error handling
 
-A dedicated `context.py` module will resolve and expose the current realm to other parts of the system.
+### 4. Middleware (`middleware.py`)
 
----
+- **Purpose**: Request context handling
+- **Features**:
+  - Realm detection
+  - Context injection
+  - Error handling
+  - Performance optimization
 
-## 🛠 Admin Panel
+### 5. Error Handling (`exceptions.py`)
 
-The `Realm` model will be fully manageable via Django Admin:
-- CRUD support
-- Filtering by active/inactive
-- Branding/theme customization
+- **Purpose**: Domain-specific error abstraction
+- **Exceptions**:
+  - `RealmNotFoundError`
+  - `RealmAccessError`
+  - `RealmValidationError`
+  - `RealmContextError`
 
----
-
-## 📤 Integration Strategy
-
-All realm-aware models (e.g., User, Application, Permission) must include a `ForeignKey` or `OneToOneField` to `Realm`.
-
-Filtering must be enforced across all endpoints using DRF filters or querysets respecting the current realm context.
-
----
-
-## ✅ TDD Strategy
+## ✅ Testing Strategy
 
 ### Unit Tests
 
-- Realm creation, validation, deactivation logic
-- Context resolution from headers and tokens
+- **Core Logic**:
+  - Realm creation
+  - Context resolution
+  - Permission checking
+  - Configuration handling
+- **Test Coverage**:
+  - 100% statement coverage
+  - Edge case handling
+  - Error scenarios
+  - Context testing
 
 ### Integration Tests
 
-- Full request flow resolving realm → accessing scoped resource
-- Admin CRUD tests
-- Middleware detection and context injection
+- **Internal Integration**:
+  - Database operations
+  - API endpoints
+  - Context management
+  - Permission checking
+- **External Integration**:
+  - JWT integration
+  - Header handling
+  - Middleware testing
+  - Error handling
 
----
+## 🔐 Environment Variables
+
+No direct environment variable access inside the app. All configuration must be passed through Django settings.
+
+If required by the consuming app, recommended settings:
+
+| Setting Name               | Purpose                      | Required | Default |
+|----------------------------|------------------------------|----------|---------|
+| `REALM_DEFAULT`            | Default realm slug           | ❌       | default |
+| `REALM_CONTEXT_HEADERS`    | Headers for realm context    | ❌       | X-Realm |
+| `REALM_CACHE_TTL`          | Cache TTL (seconds)          | ❌       | 3600    |
+| `REALM_MAX_PER_USER`       | Max realms per user          | ❌       | 10      |
+
+## 🔄 Usage Examples
+
+### Basic Realm Creation
+
+```python
+from apps.realms.services import create_realm
+
+# Create new realm
+realm = create_realm(
+    slug="myrealm",
+    name="My Realm",
+    theme={
+        "primary_color": "#007bff",
+        "secondary_color": "#6c757d"
+    }
+)
+```
+
+### Realm Context Usage
+
+```python
+from apps.realms.context import get_current_realm
+
+# Get current realm from context
+realm = get_current_realm()
+
+# Switch realm context
+with switch_realm("otherrealm"):
+    # Operations in other realm
+    pass
+```
+
+### Middleware Integration
+
+```python
+from apps.realms.middleware import RealmMiddleware
+
+# Apply middleware
+middleware = RealmMiddleware(get_response)
+response = middleware(request)
+```
+
+## 🛡 Security Considerations
+
+- **Access Control**: Strict realm isolation
+- **Context Security**: Secure context management
+- **Data Protection**: Realm-scoped data
+- **Rate Limiting**: Realm-specific limits
+- **Error Handling**: Secure error responses
+- **Configuration Security**: Sensitive config handling
+
+## 🚀 Performance Considerations
+
+- **Context Management**: Efficient context switching
+- **Caching Strategy**: Realm data caching
+- **Middleware**: Efficient request processing
+- **Error Handling**: Fast failure paths
+- **Query Optimization**: Efficient realm queries
+- **Batch Operations**: Efficient bulk operations
 
 ## 🤖 LLM Implementation Guidelines
 

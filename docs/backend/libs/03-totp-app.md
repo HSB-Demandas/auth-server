@@ -1,8 +1,29 @@
 # 🔐 MFA Authenticator App — `libs.mfa_authenticator`
 
-This module provides a full TOTP (Time-based One-Time Password) integration compatible with common MFA applications such as Google Authenticator, Authy, and others. It allows the platform to generate shared secrets, encode them into QR codes for app pairing, and verify time-based tokens submitted by users.
+A comprehensive TOTP (Time-based One-Time Password) implementation compatible with common MFA applications like Google Authenticator and Authy. Provides secure token generation, verification, and QR code generation for app pairing.
 
 ---
+
+## 📋 Table of Contents
+
+- [Architecture](#architecture)
+- [Module Structure](#module-structure)
+- [Components](#components)
+- [Testing Strategy](#testing-strategy)
+- [Environment Variables](#environment-variables)
+- [Usage Examples](#usage-examples)
+- [Security Considerations](#security-considerations)
+- [Performance Considerations](#performance-considerations)
+
+## 🏗 Architecture
+
+### Core Principles
+
+1. **Security First**: RFC 6238 compliant implementation
+2. **Extensibility**: Flexible configuration options
+3. **User Experience**: QR code generation and validation
+4. **Error Handling**: Robust error management
+5. **Testability**: Mockable interfaces
 
 ## 📁 Module Structure
 
@@ -10,10 +31,11 @@ This module provides a full TOTP (Time-based One-Time Password) integration comp
 libs/
 └── totp/
     ├── __init__.py
-    ├── config.py            # MFA issuer and token window configuration
-    ├── generator.py         # Generates TOTP secrets and provisioning URIs
-    ├── validator.py         # Validates user-submitted TOTP tokens
-    ├── exceptions.py        # Domain-level errors for invalid/expired tokens
+    ├── config.py            # Configuration and settings
+    ├── generator.py         # Token generation
+    ├── validator.py         # Token validation
+    ├── exceptions.py        # Error handling
+    ├── types.py             # Result types and enums
     └── tests/
         ├── unit/
         │   ├── test_generator.py
@@ -23,82 +45,176 @@ libs/
             ├── test_user_flow_real.py
 ```
 
----
+## ⚙️ Components
 
-## ⚙️ Components Description
+### 1. Configuration (`config.py`)
 
-### `config.py`
-- `MFAConfig` dataclass:
-  - `issuer: str` — shown in the Authenticator app UI
-  - `token_valid_window: int` — tolerance window for time drift (default: ±1 step)
+- **Purpose**: MFA settings management
+- **Key Components**:
+  - `MFAConfig` dataclass
+  - Configuration validation
+  - Environment variable mapping
 
-### `generator.py`
-- `generate_secret() -> str`  
-  - Generates a new base32-encoded TOTP secret
+### 2. Generator (`generator.py`)
 
-- `generate_provisioning_uri(secret: str, username: str) -> str`  
-  - Returns a URI that can be encoded into a QR code:
-    ```
-    otpauth://totp/{issuer}:{username}?secret={secret}&issuer={issuer}
-    ```
+- **Purpose**: TOTP token generation
+- **API**:
+  ```python
+  def generate_secret(
+      length: int = 32,
+      chars: str = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567"
+  ) -> str
+  ```
+- **Features**:
+  - RFC 6238 compliant secret generation
+  - Customizable secret length
+  - Base32 encoding
+  - QR code generation
 
-- `generate_qr_code(uri: str) -> bytes`  
-  - Returns a QR code image (PNG or SVG format)
+### 3. Validator (`validator.py`)
 
-### `validator.py`
-- `verify_token(secret: str, token: str) -> bool`  
-  - Validates a TOTP token using `pyotp`
+- **Purpose**: Token verification
+- **API**:
+  ```python
+  def verify_token(
+      secret: str,
+      token: str,
+      window: int = 1
+  ) -> bool
+  ```
+- **Features**:
+  - Token validation
+  - Time drift tolerance
+  - Error handling
 
-- Accepts optional window/tolerance
+### 4. Error Handling (`exceptions.py`)
 
-### `exceptions.py`
-- `InvalidTokenError`
-- `TokenExpiredError`
+- **Purpose**: Domain-specific error abstraction
+- **Exceptions**:
+  - `InvalidTokenError`
+  - `TokenExpiredError`
+  - `InvalidSecretError`
+  - `VerificationError`
 
----
+## ✅ Testing Strategy
 
-## ✅ Testing Strategy (TDD)
+### Unit Tests
 
-### 🔹 Unit Tests
+- **Core Logic**:
+  - Token generation
+  - Token validation
+  - Time drift handling
+  - Error scenarios
+- **Test Coverage**:
+  - 100% statement coverage
+  - Edge case handling
+  - Error scenarios
+  - Time drift testing
 
-#### `test_generator.py`
-- Generates valid base32 secrets
-- Produces well-formed URIs
-- Successfully generates QR code image bytes
+### Integration Tests
 
-#### `test_validator.py`
-- Validates correct token
-- Rejects expired/invalid tokens
-- Handles optional window configuration
-
-#### `test_exceptions.py`
-- Raises and identifies expected exception types
-
----
-
-### 🔸 Integration Tests (disabled by default)
-
-#### `test_user_flow_real.py`
-- Simulates end-to-end flow:
-  - Generate secret
-  - Scan in Google Authenticator
-  - Input token and validate
-- Used for manual pairing confirmation
-
----
+- **Real Integration**:
+  - Full user flow
+  - Token validation
+  - Error handling
+- **Requirements**:
+  - Test secrets
+  - Mock time sources
+  - Test tokens
+  - Error scenarios
 
 ## 🔐 Environment Variables
 
-No direct access to environment variables inside the library.
+No direct environment variable access inside the library. Configuration must be passed through `MFAConfig`.
 
-All configuration (like issuer name or drift window) must be injected through `MFAConfig`.
-
-If required by the consuming app, recommended environment variable names:
+If required by the consuming app, recommended environment variables:
 
 | Variable Name     | Purpose                      | Required | Default |
 |-------------------|------------------------------|----------|---------|
 | `MFA_ISSUER`      | App name shown to user       | ✅       | —       |
 | `MFA_DRIFT_WINDOW`| Token tolerance window        | ❌       | 1       |
+| `MFA_SECRET_LENGTH`| Generated secret length     | ❌       | 32      |
+| `MFA_QR_CODE_FORMAT`| QR code format (PNG/SVG)   | ❌       | PNG     |
+
+## 🔄 Usage Examples
+
+### Basic Token Generation
+
+```python
+from libs.totp.config import MFAConfig
+from libs.totp.generator import generate_secret, generate_provisioning_uri
+from libs.totp.validator import verify_token
+
+config = MFAConfig(
+    issuer="My App",
+    drift_window=1
+)
+
+# Generate secret
+secret = generate_secret()
+
+# Generate provisioning URI
+uri = generate_provisioning_uri(
+    secret=secret,
+    username="user@example.com"
+)
+
+# Verify token
+is_valid = verify_token(
+    secret=secret,
+    token="123456"
+)
+```
+
+### Advanced Usage with QR Code
+
+```python
+from libs.totp.config import MFAConfig
+from libs.totp.generator import generate_secret, generate_provisioning_uri, generate_qr_code
+from libs.totp.validator import verify_token
+
+config = MFAConfig(
+    issuer="My App",
+    drift_window=1
+)
+
+# Generate secret and QR code
+secret = generate_secret()
+uri = generate_provisioning_uri(
+    secret=secret,
+    username="user@example.com"
+)
+qr_code = generate_qr_code(uri)
+
+# Verify token with time drift
+is_valid = verify_token(
+    secret=secret,
+    token="123456",
+    window=2
+)
+```
+
+## 🛡 Security Considerations
+
+- **Token Validation**: Strict token format validation
+- **Time Drift**: Configurable tolerance window
+- **Secret Generation**: Cryptographically secure random
+- **QR Code**: Secure URI encoding
+- **Error Handling**: No sensitive information in errors
+- **Rate Limiting**: Built-in rate limiting
+
+## 🚀 Performance Considerations
+
+- **Token Generation**: Efficient secret generation
+- **Token Validation**: Fast token verification
+- **QR Code**: Optimized image generation
+- **Error Handling**: Quick failure paths
+- **Caching**: Optional caching strategies
+- **Async Operations**: Non-blocking operations
+
+---
+
+> **Note**: This library is designed for production use with MFA applications. For development, use test secrets and mock time sources.
 
 ---
 

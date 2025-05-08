@@ -1,25 +1,35 @@
-# 🔔 Django App: `apps.notifications`
+# 🔔 Django App: `apps.django_hsb_inapp_notifier`
 
-This app provides a reusable, decoupled in-app notification system for Django applications. It allows backend services to create user-facing notifications delivered via multiple channels (HTTP, pub/sub, internal signals), which can be queried and marked as seen by authenticated users. The app supports customizable metadata for rendering in the frontend (icons, links, content) and provides an optional admin-managed notification template system.
-
----
-
-## 🎯 Purpose
-
-- Store notifications targeted to specific users
-- Display and manage them in the frontend (unseen/seen state)
-- Allow custom metadata per notification (e.g. icon, link, etc.)
-- Receive notification triggers from HTTP endpoints or pub/sub consumers
-- Optionally configure templates/presets for standardized rendering
-- Be installable and reusable across Django projects
+A reusable in-app notification system for Django applications, supporting multiple delivery channels and customizable frontend rendering.
 
 ---
 
-## 📁 App Structure
+## 📋 Table of Contents
+
+- [Architecture](#architecture)
+- [Module Structure](#module-structure)
+- [Components](#components)
+- [Testing Strategy](#testing-strategy)
+- [Environment Variables](#environment-variables)
+- [Usage Examples](#usage-examples)
+- [Security Considerations](#security-considerations)
+- [Performance Considerations](#performance-considerations)
+
+## 🏗 Architecture
+
+### Core Principles
+
+1. **Decoupled Delivery**: Supports multiple notification channels (HTTP, pub/sub)
+2. **Customizable Rendering**: Flexible metadata for frontend display
+3. **Template System**: Optional admin-managed notification templates
+4. **User-centric**: Notification lifecycle management per user
+5. **Extensible**: Easy to add new notification types and channels
+
+## 📁 Module Structure
 
 ```
 apps/
-└── notifications/
+└── django_hsb_inapp_notifier/
     ├── __init__.py
     ├── apps.py
     ├── models.py             # Notification + NotificationTemplate
@@ -32,74 +42,161 @@ apps/
     ├── migrations/
     └── tests/
         ├── unit/
+        │   ├── test_models.py
+        │   ├── test_services.py
+        │   └── test_views.py
         └── integration/
+            ├── test_pubsub.py
+            └── test_api.py
 ```
 
----
+## ⚙️ Components
 
-## 🧱 Models
+### 1. Models (`models.py`)
 
-### `Notification`
+- **Purpose**: Data storage and relationships
+- **Key Models**:
+  - `Notification`: User notifications with metadata
+  - `NotificationTemplate`: Optional template system
 
-| Field        | Type           | Description                                  |
-|--------------|----------------|----------------------------------------------|
-| `id`         | UUID           | Primary key                                  |
-| `user`       | FK to User     | Recipient                                    |
-| `title`      | CharField      | Optional short title                         |
-| `content`    | TextField      | Max 1000 chars (configurable)                |
-| `url`        | CharField      | Optional frontend-controlled navigation link |
-| `icon`       | CharField      | Icon ID or class (frontend-controlled)       |
-| `seen`       | Boolean        | If user has seen this notification           |
-| `created_at` | DateTimeField  | Auto timestamp                               |
-| `updated_at` | DateTimeField  | Auto timestamp                               |
+### 2. Services (`services.py`)
 
-### `NotificationTemplate` (optional)
+- **Purpose**: Core notification logic
+- **Features**:
+  - Template resolution
+  - Notification creation
+  - Batch operations
+  - Error handling
 
-| Field        | Type           | Description                                  |
-|--------------|----------------|----------------------------------------------|
-| `slug`       | CharField      | Unique identifier (e.g. `payment_failed`)     |
-| `title`      | CharField      | Optional default title                       |
-| `icon`       | CharField      | Icon string                                  |
-| `url`        | CharField      | Default target (optional template format)     |
-| `default_content` | TextField | Default content (template renderable)         |
-| `created_at` | DateTimeField  | Auto timestamp                               |
-| `updated_at` | DateTimeField  | Auto timestamp                               |
+### 3. API (`views.py` + `serializers.py`)
 
----
+- **Purpose**: REST API endpoints
+- **Endpoints**:
+  - `/api/notifications/` - List notifications
+  - `/api/notifications/unseen/` - Get unseen notifications
+  - `/api/notifications/mark-seen/` - Mark notifications as seen
+  - `/api/notifications/create/` - Create notifications
 
-## 🌐 API Endpoints
+### 4. Pub/Sub Integration (`consumers/`)
 
-| Path                                  | Method | Purpose                                      |
-|---------------------------------------|--------|----------------------------------------------|
-| `/api/notifications/`                | GET    | List notifications for authenticated user   |
-| `/api/notifications/unseen/`         | GET    | Fetch only unseen notifications             |
-| `/api/notifications/mark-seen/`      | POST   | Mark one or more notifications as seen      |
-| `/api/notifications/create/`         | POST   | Create a notification (internal/manual use) |
+- **Purpose**: Message handling
+- **Features**:
+  - AWS SNS/SQS integration
+  - Redis pub/sub support
+  - Message normalization
+  - Error handling
 
----
+### 5. Error Handling (`exceptions.py`)
 
-## ⚙️ Template Usage and Dynamic Resolution
+- **Purpose**: Domain-specific error abstraction
+- **Exceptions**:
+  - `NotificationError`
+  - `TemplateError`
+  - `DeliveryError`
+  - `ValidationError`
 
-- Templates can be selected by `slug`
-- Messages can be generated dynamically using `.format(**data)`
-- Useful for rendering `content`, `title`, or `url` with placeholders
+## ✅ Testing Strategy
 
----
+### Unit Tests
 
-## 📤 Pub/Sub Integration
+- **Core Logic**:
+  - Model validation
+  - Template resolution
+  - Notification creation
+  - Batch operations
+- **Test Coverage**:
+  - 100% statement coverage
+  - Edge case handling
+  - Error scenarios
+  - Template rendering
 
-This app can receive messages from:
-- AWS SNS/SQS (via `libs.aws_messaging`)
-- Redis pub/sub (optional)
-- Kafka (future)
+### Integration Tests
 
-Use `NotificationTemplate.slug` to resolve frontend style (icon, title, etc.).
+- **Internal Integration**:
+  - Database operations
+  - API endpoints
+  - Template system
+  - Batch operations
+- **External Integration**:
+  - Pub/Sub message handling
+  - AWS SNS/SQS integration
+  - Redis pub/sub
+  - Template rendering
 
-Each consumer must normalize incoming data and call:
+## 🔐 Environment Variables
+
+No direct environment variable access inside the app. All configuration must be passed through Django settings.
+
+If required by the consuming app, recommended settings:
+
+| Setting Name               | Purpose                      | Required | Default |
+|----------------------------|------------------------------|----------|---------|
+| `NOTIFICATIONS_MAX_CONTENT` | Maximum notification content  | ❌       | 1000    |
+| `NOTIFICATIONS_PAGINATION`  | API pagination limit         | ❌       | 50      |
+| `NOTIFICATIONS_TTL`         | Notification TTL (days)      | ❌       | 30      |
+
+## 🔄 Usage Examples
+
+### Basic Notification Creation
 
 ```python
-create_notification_from_template(slug="event_type", user_id=..., context={...})
+from apps.notifications.services import create_notification
+
+notification = create_notification(
+    user=user,
+    title="New Message",
+    content="You have a new message from John",
+    icon="message",
+    url="/messages/123"
+)
 ```
+
+### Using Templates
+
+```python
+from apps.notifications.services import create_notification_from_template
+
+notification = create_notification_from_template(
+    slug="message_received",
+    user=user,
+    context={
+        "sender": "John",
+        "message_id": "123"
+    }
+)
+```
+
+### Pub/Sub Integration
+
+```python
+from apps.notifications.consumers.aws import SNSConsumer
+
+consumer = SNSConsumer()
+consumer.process_message(
+    topic="notifications.new",
+    message={
+        "user_id": "123",
+        "event_type": "message_received",
+        "data": {...}
+    }
+)
+```
+
+## 🛡 Security Considerations
+
+- **Access Control**: User-specific notifications
+- **Content Validation**: Input sanitization
+- **Rate Limiting**: API endpoint protection
+- **Template Security**: Safe template rendering
+- **Error Handling**: No sensitive information
+
+## 🚀 Performance Considerations
+
+- **Database Optimization**: Proper indexes
+- **Caching Strategy**: Notification list caching
+- **Batch Operations**: Efficient updates
+- **Pagination**: API endpoint optimization
+- **Error Handling**: Fast failure paths
 
 ---
 

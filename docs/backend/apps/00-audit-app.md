@@ -1,80 +1,205 @@
 # 🧾 Audit App — `apps.audit`
 
-## 📌 Purpose
-
-This app provides a centralized audit logging system to track administrative and user-related actions across all realms and applications.
-
-It supports traceability and accountability for operations such as user management, permission updates, role assignments, app configurations, and other sensitive actions.
+A centralized audit logging system for tracking administrative and user-related actions across realms and applications, ensuring traceability and accountability.
 
 ---
 
-## 📐 Models
+## 📋 Table of Contents
 
-### `AuditLogEntry`
+- [Architecture](#architecture)
+- [Module Structure](#module-structure)
+- [Components](#components)
+- [Testing Strategy](#testing-strategy)
+- [Environment Variables](#environment-variables)
+- [Usage Examples](#usage-examples)
+- [Security Considerations](#security-considerations)
+- [Performance Considerations](#performance-considerations)
 
-| Field              | Type              | Description                                      |
-|-------------------|-------------------|--------------------------------------------------|
-| `id`              | UUIDField         | Primary key                                      |
-| `actor_user`      | FK to `User`      | User who performed the action                    |
-| `actor_app`       | FK to `Application` | App (if system initiated via API key)           |
-| `realm`           | FK to `Realm`     | Realm context in which the action happened       |
-| `action`          | CharField         | A codified string of the action performed        |
-| `target_model`    | CharField         | The model class of the affected object           |
-| `target_object_id`| CharField         | The object ID of the affected record             |
-| `timestamp`       | DateTimeField     | When the action occurred                         |
-| `metadata`        | JSONField         | Additional optional metadata (e.g., IP, diff)    |
+## 🏗 Architecture
 
----
+### Core Principles
 
-## 🧠 Audit Strategy
+1. **Immutability**: Audit logs cannot be modified
+2. **Traceability**: Complete action tracking
+3. **Scalability**: Efficient querying and storage
+4. **Security**: Role-based access control
+5. **Extensibility**: Pub/Sub event system
 
-- All logs must be immutable.
-- Loggable actions include:
-    - Creation, update, deletion of users, roles, apps, permissions
-    - Security events such as MFA setup, provider linking
-    - Admin API or dashboard operations
-- Triggered via signals or explicit service layer calls
-- Audit actions can be subscribed using a Pub/Sub signal-based system. Models or events can register themselves via decorators or a registry to automatically emit logs when watched fields change.
+## 📁 Module Structure
 
----
+```
+apps/
+└── audit/
+    ├── __init__.py
+    ├── apps.py
+    ├── models.py              # AuditLogEntry model
+    ├── views.py               # API views
+    ├── urls.py                # REST API routes
+    ├── serializers.py         # DRF serializers
+    ├── services.py            # Core audit logic
+    ├── signals.py             # Signal handlers
+    ├── integrations/          # External service wrappers
+    │   ├── base.py
+    │   └── pubsub.py
+    ├── admin.py               # Optional admin integration
+    ├── migrations/
+    └── tests/
+        ├── unit/
+        │   ├── test_models.py
+        │   ├── test_services.py
+        │   └── test_signals.py
+        ├── internal_integration/
+        │   ├── test_views.py
+        │   └── test_queries.py
+        └── external_integration/
+            └── test_pubsub.py
+```
 
-## 🌐 API Endpoints
+## ⚙️ Components
 
-| Method | URL                             | Description                          |
-|--------|----------------------------------|--------------------------------------|
-| GET    | `/api/audit/`                  | List entries (admin scoped per realm) |
-| GET    | `/api/audit/<uuid:id>/`        | View specific audit entry             |
+### 1. Models (`models.py`)
 
-*Filtering by `actor`, `target_model`, `action`, and `date` is supported.*
+- **Purpose**: Immutable audit log storage
+- **Key Models**:
+  - `AuditLogEntry`: Immutable log entries
+  - `AuditSubscription`: Optional event subscriptions
+  - `AuditConfig`: Optional configuration model
 
----
+### 2. Services (`services.py`)
 
-## 🛡️ Security
+- **Purpose**: Core audit logic
+- **Features**:
+  - Log creation
+  - Event handling
+  - Query optimization
+  - Error handling
 
-- Only realm admins or auditors can view logs for their realm.
-- All access is read-only via API.
-- Endpoint is paginated and filterable, never editable.
+### 3. API (`views.py` + `serializers.py`)
 
----
+- **Purpose**: REST API endpoints
+- **Endpoints**:
+  - `/api/audit/` - List audit entries
+  - `/api/audit/<uuid:id>/` - Get audit entry
 
-## 💾 Persistence & Retention
+### 4. Integration (`integrations/`)
 
-- Retention policy configurable via settings.
-- Archival can be optionally supported via async job or cron.
+- **Purpose**: External service integration
+- **Features**:
+  - Pub/Sub event handling
+  - Signal processing
+  - Error handling
 
----
+### 5. Error Handling (`exceptions.py`)
 
-## ✅ TDD Strategy
+- **Purpose**: Domain-specific error abstraction
+- **Exceptions**:
+  - `AuditError`
+  - `ImmutableError`
+  - `AccessError`
+  - `ValidationError`
 
-- Log creation is triggered from representative backend operations.
-- Validate immutability of logs.
-- Validate filtering and pagination API responses.
-- Validate access restrictions per realm.
+## ✅ Testing Strategy
 
----
+### Unit Tests
 
-## 🔧 Configuration via Settings
+- **Core Logic**:
+  - Log creation
+  - Event handling
+  - Query optimization
+  - Signal processing
+- **Test Coverage**:
+  - 100% statement coverage
+  - Edge case handling
+  - Error scenarios
+  - Immutability testing
 
-| Setting                         | Description                                     |
-|----------------------------------|-------------------------------------------------|
-| `AUDIT_LOG_RETENTION_DAYS`      | How long logs are stored before optional purge |
+### Integration Tests
+
+- **Internal Integration**:
+  - Database operations
+  - API endpoints
+  - Signal processing
+  - Query optimization
+- **External Integration**:
+  - Pub/Sub event handling
+  - Signal processing
+  - Error handling
+  - Performance testing
+
+## 🔐 Environment Variables
+
+No direct environment variable access inside the app. All configuration must be passed through Django settings.
+
+If required by the consuming app, recommended settings:
+
+| Setting Name               | Purpose                      | Required | Default |
+|----------------------------|------------------------------|----------|---------|
+| `AUDIT_LOG_RETENTION_DAYS` | Log retention period (days)  | ❌       | 365     |
+| `AUDIT_PUBSUB_TOPIC`       | Pub/Sub topic name           | ❌       | audit   |
+| `AUDIT_MAX_QUERY_SIZE`     | Max query size               | ❌       | 1000    |
+| `AUDIT_QUERY_TIMEOUT`      | Query timeout (seconds)      | ❌       | 30      |
+
+## 🔄 Usage Examples
+
+### Basic Log Creation
+
+```python
+from apps.audit.services import create_audit_log
+
+# Create audit log
+log = create_audit_log(
+    actor_user=user,
+    realm=realm,
+    action="user.created",
+    target_model="User",
+    target_object_id=user.id,
+    metadata={
+        "ip_address": "127.0.0.1",
+        "user_agent": "Mozilla/..."
+    }
+)
+```
+
+### Signal-Based Logging
+
+```python
+from apps.audit.signals import audit_log
+
+@audit_log("user.updated")
+def user_updated(sender, instance, **kwargs):
+    return {
+        "target_model": "User",
+        "target_object_id": instance.id,
+        "changes": kwargs.get("changes", {})
+    }
+```
+
+### Querying Logs
+
+```python
+from apps.audit.models import AuditLogEntry
+
+# Query logs for specific user
+logs = AuditLogEntry.objects.filter(
+    actor_user=user,
+    realm=realm
+).order_by("-timestamp")[:100]
+```
+
+## 🛡 Security Considerations
+
+- **Access Control**: Realm-scoped access
+- **Immutability**: Log entries cannot be modified
+- **Data Protection**: Sensitive data handling
+- **Rate Limiting**: API endpoint protection
+- **Error Handling**: Secure error responses
+- **Audit Trail**: Self-auditing capabilities
+
+## 🚀 Performance Considerations
+
+- **Query Optimization**: Efficient database queries
+- **Indexing Strategy**: Proper database indexes
+- **Caching Strategy**: Query result caching
+- **Batch Operations**: Efficient bulk operations
+- **Error Handling**: Fast failure paths
+- **Pagination**: Efficient result pagination

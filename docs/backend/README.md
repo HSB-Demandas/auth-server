@@ -1,167 +1,404 @@
-# 🛡️ Auth Server Platform - Backend Application
+# 🛡️ Auth Server Platform - Backend Architecture
 
-This repository contains the complete backend architecture and implementation plan for the Authentication Server — a modular and scalable authentication and authorization system inspired by Auth0 and AWS IAM principles.
+## 📋 Table of Contents
 
----
+- [Project Overview](#project-overview)
+- [Architecture Overview](#architecture-overview)
+- [Core Applications](#core-applications)
+  - [Realms](#realms)
+  - [Applications](#applications)
+  - [Users](#users)
+  - [Authentication](#authentication)
+  - [Permissions](#permissions)
+  - [Compliance](#compliance)
+  - [Notifications](#notifications)
+  - [Webhooks](#webhooks)
+  - [Audit](#audit)
+  - [Security Events](#security-events)
+  - [Metrics](#metrics)
+  - [Passkeys](#passkeys)
+- [Supporting Libraries](#supporting-libraries)
+- [Architecture Layers](#architecture-layers)
+- [LLM Integration Guidelines](#llm-integration-guidelines)
+- [Documentation](#documentation)
+- [Status](#status)
 
 ## 🧭 Project Overview
 
-The Auth Server is a **multi-tenant identity and access management platform** designed for secure, extensible authentication, authorization, user management, and event-driven communication through webhooks.
+The Auth Server is a multi-tenant Identity and Access Management (IAM) platform built with Django, designed to provide enterprise-grade authentication, authorization, and user management capabilities. The system is inspired by best practices from providers like Auth0 and AWS IAM while maintaining full extensibility and customization.
 
-The project is implemented in **Django**, with each component encapsulated as a standalone Django app or external library. Each app is reusable, testable, and designed with long-term maintainability in mind.
+### Key Principles
 
-LLMs and human developers can navigate this repository to scaffold or extend apps based on detailed documentation and strict architectural conventions.
+1. **Modularity**: Each feature is encapsulated in a standalone Django app
+2. **Reusability**: Core functionality is abstracted into reusable libraries
+3. **Security First**: OWASP-compliant architecture with built-in compliance features
+4. **Scalability**: Designed for multi-tenant operation with proper isolation
+5. **Extensibility**: Easy to add new authentication methods, providers, and integrations
 
----
+## 🏗 Architecture Overview
 
-## 🧱 Architecture Layers
+The backend is organized into two main categories:
 
-- **Communication Layer**: All HTTP API endpoints (exposed per app)
-- **Application Layer**: Business rules and API orchestration
-- **Domain Layer**: Core models and business rules
-- **Infra Layer**: Email/SMS sending, TOTP, PubSub via SNS/SQS, external APIs
-- **Notification Layer**: Handles delivery of in-app, email, and SMS notifications
+1. **Core Applications**: Django apps that implement specific business domains
+2. **Supporting Libraries**: Reusable components that provide common functionality
 
----
+### Core Applications vs Supporting Libraries
 
-## 🏗 Architecture Reference
+- **Core Applications** (`apps.*`): Implement business logic and domain rules
 
-For a detailed explanation of the system layers and their responsibilities, see:
+  - Have their own models, views, serializers, and permissions
+  - Contain business-specific logic and workflows
+  - Are tightly coupled to the IAM domain
+- **Supporting Libraries** (`libs.*`): Provide reusable technical components
 
-➡️ [System Architecture Overview](01-architecture.md)
-
----
+  - Are decoupled from business logic
+  - Can be used in other projects
+  - Focus on technical implementation details
 
 ## 🧩 Core Applications
 
-### 1. `apps.realms`  
-- Represents isolated environments (e.g., tenants)  
-- Highest-level scoping for users and applications  
+### 1. `apps.realms`
 
-### 2. `apps.applications`  
-- Manages client app registration, API keys, and JWT public keys  
-- Configures enabled providers, MFA policies, and terms versions  
+**Purpose**: Tenant isolation and scoping
 
-### 3. `apps.users`  
-- Manages user profiles, self-registration, password and linked providers  
-- Tracks email/phone/TOTP validation and consent to policy/terms  
-- Includes user data export endpoint  
+- **Key Features**:
+  - Realm-based isolation for multi-tenant operation
+  - Configuration management per realm
+  - Resource scoping and isolation
+  - Custom branding and settings per realm
 
-### 4. `apps.auth`  
-- Handles login, token issuance, MFA and session lifecycle  
-- Supports email/SMS/TOTP/passkey challenges  
-- Offers token introspection endpoint for external integrations  
+### 2. `apps.applications`
 
-### 5. `apps.permissions`  
-- Defines and enforces role-based access control per realm/app  
-- Roles may require user validations to be active  
+**Purpose**: Client application management and registration
 
-### 6. `apps.compliance`  
-- Versioned privacy and terms documents with cached endpoints  
-- Tracks user acceptance and individual consent preferences  
+- **Key Features**:
+  - OAuth2 client registration
+  - API key management
+  - JWT configuration and public key management
+  - Provider configuration
+  - MFA policy management
+  - Terms and conditions versioning
 
-### 7. `apps.notifications`  
-- In-app notification delivery per user  
-- Allows configurable icon and action-link metadata  
+### 3. `apps.users`
 
-### 8. `apps.webhooks`  
-- App-level webhook registration, retry, and logging  
-- HMAC signature and delivery status tracking  
+**Purpose**: User management and profile handling
 
-### 9. `apps.audit`  
-- Immutable log of sensitive operations for compliance and traceability  
-- Logs user, role, permission, and admin actions per realm  
+- **Key Features**:
+  - User registration and profile management
+  - Provider linking (password, social, passkeys)
+  - Email/phone verification
+  - TOTP device management
+  - Consent tracking
+  - Data export compliance
 
-### 10. `apps.security_events`  
-- Tracks known devices and detects suspicious login attempts  
-- Alerts users on new device activity and allows confirmation  
+### 4. `apps.auth`
 
-### 11. `apps.metrics`  
-- Exposes Prometheus-style metrics (login success, role usage, webhooks)  
-- Enables observability for system operators and realm admins  
+**Purpose**: Authentication workflow and session management
 
-### 12. `apps.passkeys`  
-- Manages WebAuthn/FIDO2 passkey credentials  
-- Allows users to register, label, and revoke passkeys  
-- Integrates with login via `apps.auth`  
+- **Key Features**:
+  - Multi-factor authentication workflow
+  - JWT token issuance and validation
+  - Session management
+  - Passkey authentication
+  - Rate limiting
+  - Login flow orchestration
 
----
+### 5. `apps.permissions`
+
+**Purpose**: Role-based access control and authorization
+
+- **Key Features**:
+  - Role definition and management
+  - Permission assignment
+  - Role validation rules
+  - Policy enforcement
+  - Access control lists
+
+### 6. `apps.compliance`
+
+**Purpose**: Legal and regulatory compliance
+
+- **Key Features**:
+  - Terms and conditions management
+  - Privacy policy versioning
+  - User consent tracking
+  - Data export endpoints
+  - Compliance reporting
+
+### 7. `apps.notifications`
+
+**Purpose**: User communication and alerts
+
+- **Key Features**:
+  - In-app notification delivery
+  - Actionable notifications
+  - Notification preferences
+  - Event-driven notifications
+  - Delivery tracking
+
+### 8. `apps.webhooks`
+
+**Purpose**: Event-driven integration
+
+- **Key Features**:
+  - Webhook registration and management
+  - Event delivery with retry logic
+  - HMAC signature validation
+  - Delivery status tracking
+  - Rate limiting
+
+### 9. `apps.audit`
+
+**Purpose**: System observability and compliance
+
+- **Key Features**:
+  - Immutable audit logging
+  - Action tracking per realm
+  - User activity monitoring
+  - Compliance reporting
+  - Event correlation
+
+### 10. `apps.security_events`
+
+**Purpose**: Security monitoring and alerting
+
+- **Key Features**:
+  - Device tracking and trust
+  - Suspicious activity detection
+  - Login attempt monitoring
+  - Security event correlation
+  - User notification
+
+### 11. `apps.metrics`
+
+**Purpose**: System monitoring and observability
+
+- **Key Features**:
+  - Prometheus-style metrics
+  - Login success/failure tracking
+  - Role usage metrics
+  - Webhook delivery statistics
+  - System health monitoring
+
+### 12. `apps.passkeys`
+
+**Purpose**: WebAuthn/FIDO2 credential management
+
+- **Key Features**:
+  - Passkey registration
+  - Credential management
+  - Passkey verification
+  - Integration with authentication flow
+  - Security policy enforcement
 
 ## 📦 Supporting Libraries
 
-All libraries are standalone, testable and include TDD and integration specs:
+### 1. `libs.totp`
 
-### ✅ `libs.totp`
-- TOTP (RFC 6238) handling for code generation and verification
+**Purpose**: Time-based One-Time Password implementation
 
-### ✅ `libs.twilio`
-- SMS send and code verification via Twilio
+- **Features**:
+  - RFC 6238 compliant TOTP generation
+  - QR code generation for app setup
+  - Code verification
+  - Recovery code management
 
-### ✅ `libs.mailer`
-- Multi-provider email sender with optional event tracking
-- HTML template rendering with unsubscribe support
+### 2. `libs.twilio`
 
-### ✅ `libs.aws`
-- SNS + SQS integration for internal PubSub
-- Async consumer with typed payload validation (Pydantic)
+**Purpose**: SMS integration and verification
 
-### ✅ `django_hsb_ratelimit`  
-- Django-integrated Redis-based rate limiting  
-- Decorators and DRF-compatible throttling for IP, user, realm, or composite scope  
+- **Features**:
+  - SMS message sending
+  - Code verification
+  - Message templating
+  - Rate limiting
+  - Error handling
 
-### ✅ `libs.passkeys`
-- Manages FIDO2/WebAuthn challenge generation and verification
-- Used for login and credential registration
+### 3. `libs.mailer`
 
----
+**Purpose**: Email notification system
 
-## 🔧 Configuration Guidelines
+- **Features**:
+  - Multi-provider email sending
+  - HTML template rendering
+  - Event tracking
+  - Bounce handling
+  - Unsubscribe management
 
-- All sensitive configurations must be injected via environment variables
-- Secrets must be encrypted per deployment
-- Each app includes example `.env` variables and documentation
+### 4. `libs.aws`
 
----
+**Purpose**: AWS service integration
 
-## 🧠 LLM Guidelines
+- **Features**:
+  - SNS + SQS integration
+  - Async message processing
+  - Payload validation
+  - Error handling
+  - Retry logic
 
-- All apps are self-contained and documented in markdown
-- Each feature is mapped to endpoints and (where relevant) webhook triggers
-- Flows like registration, MFA, session handling, and token issuance are clearly separated between apps
-- Test strategies are documented per app: unit and integration
-- Passkey-based login is managed by `apps.auth`, while credential lifecycle is handled in `apps.passkeys`
-- WebAuthn protocol support uses `python-fido2` internally
+### 5. `django_hsb_ratelimit`
 
----
+**Purpose**: Rate limiting and throttling
+
+- **Features**:
+  - Redis-based rate limiting
+  - DRF-compatible throttling
+  - Multiple scope support
+  - Custom rate limit definitions
+  - Real-time monitoring
+
+### 6. `libs.passkeys`
+
+**Purpose**: WebAuthn protocol implementation
+
+- **Features**:
+  - FIDO2 protocol support
+  - Challenge generation
+  - Credential verification
+  - Security policy enforcement
+  - Error handling
+
+## 🏗 Architecture Layers
+
+The system is organized into distinct architectural layers:
+
+1. **Communication Layer**
+
+   - REST API endpoints
+   - GraphQL API (planned)
+   - WebSocket connections
+   - Protocol handling
+2. **Application Layer**
+
+   - Business logic orchestration
+   - Workflow management
+   - Cross-app coordination
+   - Event handling
+3. **Domain Layer**
+
+   - Business entities
+   - Domain rules
+   - Value objects
+   - Domain events
+4. **Infrastructure Layer**
+
+   - Database access
+   - External service integration
+   - Message queue handling
+   - Caching
+   - Storage
+5. **Notification Layer**
+
+   - Event-driven notifications
+   - Delivery channels
+   - Retry mechanisms
+   - Status tracking
+
+## 🧠 LLM Integration Guidelines
+
+### App Structure
+
+Each app follows a consistent structure:
+
+```
+apps/<app_name>/
+├── models/          # Domain models
+├── services/        # Business logic
+├── tasks/          # Async tasks
+├── serializers/     # Data serialization
+├── views/          # API endpoints
+├── permissions/    # Access control
+├── events/         # Event handling
+├── docs/           # Documentation
+└── tests/          # Test suite
+```
+
+### Integration Points
+
+1. **Data Flow**
+
+   - Clear input/output specifications
+   - Well-defined data models
+   - Standardized error handling
+2. **Authentication Flow**
+
+   - Step-by-step process documentation
+   - Required permissions
+   - Error scenarios
+   - Success criteria
+3. **Event System**
+
+   - Available events
+   - Event payloads
+   - Event triggers
+   - Event consumers
+
+### Best Practices
+
+1. **Documentation**
+
+   - Maintain API documentation
+   - Keep examples up-to-date
+   - Document integration points
+   - Update error codes
+2. **Testing**
+
+   - Unit tests for core functionality
+   - Integration tests for workflows
+   - Performance benchmarks
+   - Security testing
+3. **Security**
+
+   - Input validation
+   - Rate limiting
+   - Error masking
+   - Audit logging
+   - Compliance checks
 
 ## 📚 Documentation
 
-Each app is documented individually:
+Each component is documented in its own file:
 
-- `01-realms-app.md`
-- `02-applications-app.md`
-- `03-permissions-app.md`
-- `04-users-app.md`
-- `05-auth-app.md`
-- `06-webhooks-app.md`
-- `07-security-app.md`
-- `08-metrics-app.md`
-- `05-ratelimit.md`
-- `django_hsb_mailer.md`
-- `django_hsb_twilio.md`
-- `django_hsb_totp.md`
-- `django_hsb_notifications.md`
+- Core Applications:
 
----
+  - [01-realms-app.md](01-realms-app.md)
+  - [02-applications-app.md](02-applications-app.md)
+  - [03-permissions-app.md](03-permissions-app.md)
+  - [04-users-app.md](04-users-app.md)
+  - [05-auth-app.md](05-auth-app.md)
+  - [06-webhooks-app.md](06-webhooks-app.md)
+  - [07-security-app.md](07-security-app.md)
+  - [08-metrics-app.md](08-metrics-app.md)
+- Supporting Libraries:
+
+  - [django_hsb_ratelimit.md](django_hsb_ratelimit.md)
+  - [django_hsb_mailer.md](django_hsb_mailer.md)
+  - [django_hsb_twilio.md](django_hsb_twilio.md)
+  - [django_hsb_totp.md](django_hsb_totp.md)
+  - [django_hsb_notifications.md](django_hsb_notifications.md)
 
 ## ✅ Status
 
-Backend planning is **complete** and ready for implementation. Each app includes:
+The backend architecture is fully planned and ready for implementation. Each component includes:
 
-- Complete models
-- Endpoint structure
-- Permissions
-- Events (where applicable)
-- TDD plans
+- Complete data models
+- Defined API endpoints
+- Permission structures
+- Event definitions
+- Test plans
+- Integration guidelines
+- Security considerations
+- Performance requirements
+
+The system is designed to be extensible, allowing for:
+
+- New authentication methods
+- Additional compliance features
+- Custom notification channels
+- Extended audit capabilities
+- New security controls
+- Additional monitoring metrics
 
 ---
+
+> **Note**: This README serves as the main entry point for understanding the backend architecture. Each component has its own detailed documentation that should be consulted for implementation details.
