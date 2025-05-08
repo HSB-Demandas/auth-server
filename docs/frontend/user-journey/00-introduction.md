@@ -49,6 +49,22 @@ User journeys serve as the central documentation for:
 - **Success Metrics**: How will we measure success?
 - **KPIs**: Key performance indicators
 
+### 2. **Personas**
+
+- **Primary User**: 
+  - Role: Main user of the feature
+  - Goals: What they want to achieve
+  - Behaviors: How they interact with the system
+  - Pain Points: Common challenges
+  - Success Criteria: What defines success for them
+
+- **Secondary Users**: 
+  - Role: Supporting users of the feature
+  - Goals: Secondary objectives
+  - Behaviors: Interaction patterns
+  - Pain Points: Common challenges
+  - Success Criteria: What defines success for them
+
 ### 3. **Stakeholder Roles**
 
 - **Product Owner**: 
