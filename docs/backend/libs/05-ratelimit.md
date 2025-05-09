@@ -53,7 +53,7 @@ libs/
 
 - **Purpose**: Rate limit settings
 - **Key Components**:
-  - `RateLimitConfig` dataclass
+  - `RateLimitConfig` pydantic model
   - Redis connection settings
   - Default limits and windows
   - Error message customization

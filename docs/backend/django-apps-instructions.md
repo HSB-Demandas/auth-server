@@ -79,12 +79,14 @@ This document outlines the design principles and implementation guidelines for r
 - Document API endpoints with Swagger/OpenAPI.
 
 ### 8. **Testing Strategy**
+- Use pytest for testing Django apps.
+- Create a `conftest.py` file to share fixtures across test files and avoid duplication.
 - Clear separation of test types:
   - Unit tests: Test business logic and models
   - Internal integration tests: Test Django ORM and internal systems
   - External integration tests: Test external service integrations
 - External integration tests should be:
-  - Disabled by default (require explicit flag)
+  - Disabled by default (require explicit flag like `ENABLE_EXTERNAL_TESTS`)
   - Clearly marked as external tests
   - Use real credentials only in test environments
   - Include setup and teardown procedures
@@ -92,6 +94,7 @@ This document outlines the design principles and implementation guidelines for r
   ```
   your_app/
   ├── tests/
+  │   ├── conftest.py           # Shared fixtures
   │   ├── unit/
   │   │   ├── test_models.py
   │   │   └── test_services.py

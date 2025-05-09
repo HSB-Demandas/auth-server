@@ -51,7 +51,7 @@ libs/
 
 - **Purpose**: MFA settings management
 - **Key Components**:
-  - `MFAConfig` dataclass
+  - `MFAConfig` pydantic model
   - Configuration validation
   - Environment variable mapping
 

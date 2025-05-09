@@ -27,6 +27,8 @@ drf-nested-routers = "^0.94.1"
 psycopg2-binary = "^2.9.10"
 pyjwt = "^2.10.1"
 whitenoise = "^6.9.0"
+phonenumbers = "^9.0.5"
+twilio = "^9.6.0"
 
 [tool.poetry.group.dev.dependencies]
 bandit = "^1.7.8"
@@ -52,7 +54,8 @@ build-backend = "poetry.core.masonry.api"
 branch = true
 omit = [
     "/venv/*",
-    "*tests*",
+    "*conftest.py",
+    "*/tests/*",
     "*migrations*",
     "*asgi*",
     "*wsgi*",
@@ -60,6 +63,7 @@ omit = [
 
 [tool.coverage.report]
 exclude_lines = [
+    "# pragma: no cover",
     "pragma: no cover",
     "def __repr__",
     "def __str__",
@@ -94,6 +98,9 @@ disable_error_code = "valid-type"
 
 [tool.pytest.ini_options]
 asyncio_mode = "strict"
+markers = [
+    "integration: marks tests as integration (deselect with '-m \"not integration\"')"
+]
 
 [tool.bandit]
 skips = ["B104", "B601"]

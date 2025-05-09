@@ -55,7 +55,7 @@ libs/
 
 - **Purpose**: AWS service configuration
 - **Key Components**:
-  - `AWSMessagingConfig` dataclass
+  - `AWSMessagingConfig` pydantic model
   - Service endpoint configuration
   - Retry strategy settings
 

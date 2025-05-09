@@ -64,7 +64,7 @@ libs/
 
 - **Purpose**: Email service configuration
 - **Key Components**:
-  - `EmailConfig` dataclass
+  - `EmailConfig` pydantic model
   - Provider-specific settings
   - Event handling configuration
 
