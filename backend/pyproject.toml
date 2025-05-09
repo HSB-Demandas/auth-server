@@ -1,0 +1,102 @@
+[tool.poetry]
+name = "auth-server"
+version = "0.1.0"
+description = "A centralized, secure, and modular authentication platform built with Django. It supports multi-tenant applications by providing complete Identity and Access Management (IAM) features, including OAuth2 authentication, user and app isolation, session control, multi-factor authentication (MFA), role-based permissions, audit logging, and integrations."
+authors = ["Hugo Seabra <hugoseabra19@gmail.com>"]
+readme = "README.md"
+package-mode = false
+
+[tool.poetry.dependencies]
+python = "^3.12"
+pydantic = {extras = ["all"], version = "^2.11.4"}
+django = "^5.2.1"
+python-decouple = "^3.8"
+structlog = "^25.3.0"
+pillow = "^11.2.1"
+django-stdimage = "^6.0.2"
+djangorestframework = "^3.16.0"
+djangorestframework-simplejwt = "^5.4.0"    # keep this version
+django-cors-headers = "^4.7.0"
+django-extensions = "^4.1"
+django-health-check = "^3.18.3"
+django-filter = "^25.1"
+django-lifecycle = "^1.2.4"
+django-redis = "^5.4.0"
+drf-yasg = {extras = ["validation"], version = "^1.21.7"}
+drf-nested-routers = "^0.94.1"
+psycopg2-binary = "^2.9.10"
+pyjwt = "^2.10.1"
+whitenoise = "^6.9.0"
+
+[tool.poetry.group.dev.dependencies]
+bandit = "^1.7.8"
+black = "^24.4.0"
+factory-boy = "^3.3.0"
+pytest = "^8.1.1"
+pytest-asyncio = "^0.23.6"
+flake8 = "^7.0.0"
+flake8-pyproject = "^1.2.3"
+isort = "^5.13.2"
+mypy = "^1.9.0"
+pre-commit = "^3.7.0"
+pytest-cov = "^5.0.0"
+pytest-deadfixtures = "^2.2.1"
+pytest-mock = "^3.14.0"
+safety = "^3.1.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.coverage.run]
+branch = true
+omit = [
+    "/venv/*",
+    "*tests*",
+    "*migrations*",
+    "*asgi*",
+    "*wsgi*",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "def __str__",
+    "if TYPE_CHECKING:",
+    "if __name__ == .__main__.:",
+]
+
+[tool.isort]
+py_version = 312
+multi_line_output = 3
+line_length = 80
+include_trailing_comma = true
+use_parentheses = true
+skip = ["venv", ".venv"]
+
+[tool.black]
+target-version = ["py312"]
+
+[tool.flake8]
+exclude = ["venv*", ".venv", ".git"]
+ignore = ['E231', 'E241', 'F403', 'E704', 'E701']
+per-file-ignores = ['__init__.py:F401']
+max-line-length = 120
+count = true
+
+[tool.mypy]
+ignore_missing_imports = true
+python_version = 3.12
+plugins = "pydantic.mypy"
+show_error_codes = true
+disable_error_code = "valid-type"
+
+[tool.pytest.ini_options]
+asyncio_mode = "strict"
+
+[tool.bandit]
+skips = ["B104", "B601"]
+
+[tool.bandit.assert_used]   # B101 semantically
+skips = ['*_test.py', 'test_*.py', '*test*.py']

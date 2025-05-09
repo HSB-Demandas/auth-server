@@ -1,0 +1,29 @@
+services:
+  api:
+    image: datacare_api:local
+    restart: unless-stopped
+    #platform: linux/arm64
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    env_file:
+      - .env
+    ports:
+      - 80:8000
+    volumes:
+      - .:/code/app
+
+#  websocket:
+#    restart: unless-stopped
+#    build:
+#      context: .
+#      dockerfile: Dockerfile
+#      target: production
+#    env_file:
+#      - .env
+#    command: daphne -b 0.0.0.0 -p 5000 project.asgi:application
+#    ports:
+#      - 5000:5000
+#    volumes:
+#      - .:/code/app
